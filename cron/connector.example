@@ -1,0 +1,4 @@
+0 */2 * * * ees_connector incremental-sync >> ~/incremental-sync.log 2>&1
+0 0 */2 * * ees_connector full-sync >> ~/full-sync.log 2>&1
+0 * * * * ees_connector deletion-sync >> ~/deletion-sync.log 2>&1
+*/5 * * * * ees_connector permission-sync >> ~/permission-sync.log 2>&1
