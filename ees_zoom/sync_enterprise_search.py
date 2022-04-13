@@ -20,7 +20,9 @@ class SyncEnterpriseSearch:
         self.logger = logger
         self.workplace_search_client = workplace_search_client
         self.queue = queue
-        self.enterprise_search_sync_thread_count = config.get_value("enterprise_search_sync_thread_count")
+        self.enterprise_search_sync_thread_count = config.get_value(
+            "enterprise_search_sync_thread_count"
+        )
         self.thread_pool = ThreadPool(self.enterprise_search_sync_thread_count)
 
     def index_documents(self, documents):
@@ -31,7 +33,9 @@ class SyncEnterpriseSearch:
             if documents:
                 total_documents_indexed = 0
                 responses = self.workplace_search_client.index_documents(
-                    content_source_id=self.config.get_value("enterprise_search.source_id"),
+                    content_source_id=self.config.get_value(
+                        "enterprise_search.source_id"
+                    ),
                     documents=documents,
                 )
                 for document in responses["results"]:
@@ -61,7 +65,9 @@ class SyncEnterpriseSearch:
                         break
                     else:
                         documents_to_index.extend(documents.get("data"))
-                for document_list in split_documents_into_equal_chunks(documents_to_index, BATCH_SIZE):
+                for document_list in split_documents_into_equal_chunks(
+                    documents_to_index, BATCH_SIZE
+                ):
                     self.thread_pool.apply_async(self.index_documents, (document_list,))
                 if not signal_open:
                     break

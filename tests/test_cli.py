@@ -7,7 +7,7 @@ import pytest
 import unittest
 import unittest.mock
 
-from ees_connector import cli
+from ees_zoom import cli
 
 from tests.support import get_args
 

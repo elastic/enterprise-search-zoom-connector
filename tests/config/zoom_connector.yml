@@ -1,0 +1,64 @@
+#Configurations for the Zoom Connector
+
+# Zoom configuration settings
+# Client Id of Zoom Oauth App to fetch the access_token
+zoom.client_id: dummy_client_id
+# Client Secret of Zoom Oauth App to fetch the access_token
+zoom.client_secret: dummy_client_secret
+# refresh_token of Zoom Oauth App to fetch the access_token
+zoom.refresh_token: dummy_tokens_abc1231
+
+#Workplace Search configuration settings
+#Access token for Workplace search authentication
+enterprise_search.api_key: dummy_key
+#Source identifier for the custom source created on the workplace search server
+enterprise_search.source_id: abc123
+#Workplace search server address Example: http://es-host:3002
+enterprise_search.host_url: https://dummy_host/
+
+# Connector specific configuration settings
+# Specifies the objects to be fetched and indexed in the WorkPlace search along with fields
+# that needs to be included/excluded. The list of the objects supported are users.
+# By default all the objects are fetched
+objects:
+    users:
+        include_fields:
+        exclude_fields:
+    recordings:
+        include_fields:
+        exclude_fields:
+    channels:
+        include_fields:
+        exclude_fields:
+    roles:
+        include_fields:
+        exclude_fields:
+    meetings:
+        include_fields:
+        exclude_fields:
+    chats:
+        include_fields:
+        exclude_fields:
+    files:
+        include_fields:
+        exclude_fields:
+    past_meetings:
+        include_fields:
+        exclude_fields:
+
+#The time after which all the objects that are modified or created are fetched from Zoom. By default, all the objects present in the Zoom till the end_time are fetched
+start_time: 
+#The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
+end_time: 
+#The level of the logs the user wants to use in the log files. The possible values include: debug, info, warn, error. By default, the level is info
+log_level: INFO
+#The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
+retry_count: 3
+#Number of threads to be used in multithreading for the zoom sync.
+zoom_sync_thread_count: 5
+#Number of threads to be used in multithreading for the enterprise search sync.
+enterprise_search_sync_thread_count: 5
+# Denotes whether document permission will be enabled or not
+enable_document_permission: Yes
+#The path of csv file containing mapping of the source user name to Workplace user name
+zoom.user_mapping: ''

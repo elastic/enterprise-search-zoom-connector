@@ -56,7 +56,9 @@ class Checkpoint:
         :param current_time: current time
         :param obj_type: key for which checkpoint json file
         """
-        self.logger.info(f"Fetching the checkpoint details from the checkpoint file: {CHECKPOINT_PATH}")
+        self.logger.info(
+            f"Fetching the checkpoint details from the checkpoint file: {CHECKPOINT_PATH}"
+        )
 
         start_time = self.config.get_value("start_time")
         end_time = self.config.get_value("end_time")
@@ -78,18 +80,22 @@ class Checkpoint:
                         )
                     else:
                         try:
-                            start_time = coerce_rfc_3339_date(checkpoint_list.get(obj_type)).strftime(
-                                RFC_3339_DATETIME_FORMAT
-                            )
+                            start_time = coerce_rfc_3339_date(
+                                checkpoint_list.get(obj_type)
+                            ).strftime(RFC_3339_DATETIME_FORMAT)
                             end_time = current_time
                         except ValueError as exception:
-                            raise IncorrectFormatError(obj_type, checkpoint_list.get(obj_type), exception)
+                            raise IncorrectFormatError(
+                                obj_type, checkpoint_list.get(obj_type), exception
+                            )
                 except ValueError as exception:
                     self.logger.exception(
                         f"Error while parsing the json file of the checkpoint store from path: {CHECKPOINT_PATH}. \
                         Error: {exception}"
                     )
-                    self.logger.info("Considering the start_time and end_time from the configuration file")
+                    self.logger.info(
+                        "Considering the start_time and end_time from the configuration file"
+                    )
 
         else:
             self.logger.debug(
@@ -106,7 +112,7 @@ class Checkpoint:
         """This method updates the existing checkpoint json file or creates
         a new checkpoint json file in case it is not present
         :param current_time: current time
-        :index_type: indexing type from "incremental" or "full_sync"
+        :param index_type: indexing type from "incremental" or "full_sync"
         :param obj_type: object type to set the checkpoint
         """
         try:

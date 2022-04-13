@@ -20,8 +20,11 @@ install_requires = [
     "flake8",
     "pytest",
     "pytest-cov",
+    "pytest-custom_exit_code",
     "pyyaml",
-    "tika"
+    "requests_ntlm",
+    "ruamel.yaml",
+    "tika",
 ]
 
 description = ""
@@ -44,20 +47,21 @@ classifiers = [
 
 
 setup(
-    name="python connector template",
+    name="python connector zoom",
     version=__version__,
     url="https://example.com",
     packages=find_packages(),
     long_description=description.strip(),
-    description=("This is a template python project for a Enterprise Search Connector."),
+    description=("This is a python project for Enterprise Search Zoom Connector."),
     author="author",
     author_email="email",
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
     install_requires=install_requires,
+    data_files=[("config", ["zoom_connector.yml"])],
     entry_points="""
       [console_scripts]
-      run_connector=connector.cli:main
+      ees_zoom = ees_zoom.cli:main
       """,
 )

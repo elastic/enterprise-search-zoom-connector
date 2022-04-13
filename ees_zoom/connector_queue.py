@@ -5,8 +5,9 @@
 #
 import multiprocessing
 from multiprocessing.queues import Queue
-from .utils import split_documents_into_equal_chunks
+
 from .constant import BATCH_SIZE
+from .utils import split_documents_into_equal_chunks
 
 
 class ConnectorQueue(Queue):
@@ -38,7 +39,7 @@ class ConnectorQueue(Queue):
 
     def append_to_queue(self, documents):
         """Append documents to the shared queue
-        :param documents: documents fetched from sharepoint
+        :param documents: documents fetched from Zoom
         """
         if documents:
             for chunk in split_documents_into_equal_chunks(documents, BATCH_SIZE):
