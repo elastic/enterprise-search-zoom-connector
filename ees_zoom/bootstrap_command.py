@@ -33,25 +33,25 @@ class BootstrapCommand(BaseCommand):
                 body={
                     "name": args.name,
                     "schema": {
-                        "body": "text",
-                        "created_at": "date",
-                        "description": "text",
-                        "name": "text",
-                        "size": "text",
                         "title": "text",
-                        "type": "text",
+                        "body": "text",
                         "url": "text",
+                        "created_at": "date",
+                        "name": "text",
+                        "description": "text",
+                        "type": "text",
+                        "size": "text",
                     },
                     "display": {
                         "title_field": "title",
                         "description_field": "description",
                         "url_field": "url",
                         "detail_fields": [
-                            {"field_name": "body", "label": "Content"},
                             {"field_name": "created_at", "label": "Created At"},
-                            {"field_name": "description", "label": "Description"},
-                            {"field_name": "size", "label": "Size (in bytes)"},
                             {"field_name": "type", "label": "Type"},
+                            {"field_name": "size", "label": "Size (in bytes)"},
+                            {"field_name": "description", "label": "Description"},
+                            {"field_name": "body", "label": "Content"},
                         ],
                         "color": "#000000",
                     },
@@ -61,7 +61,7 @@ class BootstrapCommand(BaseCommand):
 
             content_source_id = resp.get("id")
             logger.info(
-                f"Created Content Source with ID {content_source_id}. \
+                f"Created ContentSource with ID {content_source_id}. \
                     You may now begin indexing with content-source-id= {content_source_id}"
             )
         except Exception as exception:

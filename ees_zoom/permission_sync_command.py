@@ -51,7 +51,7 @@ class PermissionSyncCommand(BaseCommand):
         self.logger.debug("Initializing the Permission Indexing class")
         self.ws_source = config.get_value("enterprise_search.source_id")
         self.enable_document_permission = config.get_value("enable_document_permission")
-        self.user_mapping = config.get_value("connector.user_mapping")
+        self.user_mapping = config.get_value("zoom.user_mapping")
 
     def remove_all_permissions(self):
         """Removes all the permissions present in the workplace"""
@@ -69,9 +69,7 @@ class PermissionSyncCommand(BaseCommand):
                         user=permission["user"],
                         body={"permissions": permission["permissions"]},
                     )
-                self.logger.info(
-                    "Successfully removed the permissions from the workplace."
-                )
+                self.logger.info("Successfully removed the permissions from the workplace.")
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
@@ -89,9 +87,7 @@ class PermissionSyncCommand(BaseCommand):
                 user=user_name,
                 body={"permissions": permissions},
             )
-            self.logger.info(
-                f"Successfully indexed the permissions for user {user_name} to the workplace"
-            )
+            self.logger.info(f"Successfully indexed the permissions for user {user_name} to the workplace")
         except Exception as exception:
             self.logger.exception(
                 f"Error while indexing the permissions for user: {user_name} to the workplace. Error: {exception}"
@@ -107,11 +103,7 @@ class PermissionSyncCommand(BaseCommand):
         if not self.enable_document_permission:
             self.logger.warning("Exiting as the enable permission flag is set to False")
             raise PermissionSyncDisabledException
-        if (
-            self.user_mapping
-            and os.path.exists(self.user_mapping)
-            and os.path.getsize(self.user_mapping) > 0
-        ):
+        if self.user_mapping and os.path.exists(self.user_mapping) and os.path.getsize(self.user_mapping) > 0:
             mappings = {}
             with open(self.user_mapping, encoding="utf-8") as mapping_file:
                 try:
@@ -135,6 +127,6 @@ class PermissionSyncCommand(BaseCommand):
             self.logger.error(
                 f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty. \
                 Please add the source_user->enterprise_search_user mappings to sync the permissions in the \
-                     Enterprise Search"
+                    Enterprise Search"
             )
             raise EmptyMappingException

@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 if sys.version_info < (3, 6):
     raise ValueError("Requires Python 3.6 or superior")
 
-from ees_connector import __version__  # NOQA
+from ees_zoom import __version__  # NOQA
 
 install_requires = [
     "cached_property",
@@ -47,7 +47,7 @@ classifiers = [
 
 
 setup(
-    name="python connector zoom",
+    name="ees_zoom_connector",
     version=__version__,
     url="https://example.com",
     packages=find_packages(),

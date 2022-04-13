@@ -6,7 +6,7 @@
 """Configuration module allows manipulations with application configuration.
 
     This module can be used to read and validate configuration file that defines
-    the settings of the Zoom connector.
+    the settings of the connector.
 """
 import yaml
 from cerberus import Validator

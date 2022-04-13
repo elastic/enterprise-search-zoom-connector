@@ -50,6 +50,4 @@ class LocalStorage:
             try:
                 json.dump(ids, ids_file, indent=4)
             except ValueError as exception:
-                self.logger.exception(
-                    f"Error while updating the doc_id json file. Error: {exception}"
-                )
+                self.logger.exception(f"Error while updating the doc_id json file. Error: {exception}")
