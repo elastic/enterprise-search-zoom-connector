@@ -19,7 +19,7 @@ enterprise_search.host_url:
 # Connector specific configuration settings
 # Specifies the objects to be fetched and indexed in the WorkPlace search along with fields
 # that needs to be included/excluded. The list of the objects supported are users, recordings, 
-# channels, roles, meeting, chats, files, past-meetings.
+# channels, roles, meeting, chats, files, past-meetings, and groups.
 # By default all the objects are fetched
 objects:
     users:
@@ -46,6 +46,9 @@ objects:
     past_meetings:
         include_fields:
         exclude_fields:
+    groups:
+        include_fields:
+        exclude_fields:
 
 #The time after which all the objects that are modified or created are fetched from Zoom. By default, all the objects present in the Zoom till the end_time are fetched
 start_time: 
@@ -61,5 +64,5 @@ zoom_sync_thread_count: 5
 enterprise_search_sync_thread_count: 5
 # Denotes whether document permission will be enabled or not
 enable_document_permission: Yes
-#The path of csv file containing mapping of the source user name to Workplace user name
+#The path of csv file containing mapping of the zoom user id to Workplace user name
 zoom.user_mapping: ''

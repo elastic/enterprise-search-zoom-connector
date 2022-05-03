@@ -6,7 +6,7 @@ zoom.client_id: dummy_client_id
 # Client Secret of Zoom Oauth App to fetch the access_token
 zoom.client_secret: dummy_client_secret
 # refresh_token of Zoom Oauth App to fetch the access_token
-zoom.refresh_token: new_dummy_refresh_token
+zoom.refresh_token: abcd
 
 #Workplace Search configuration settings
 #Access token for Workplace search authentication
@@ -18,7 +18,8 @@ enterprise_search.host_url: https://dummy_host/
 
 # Connector specific configuration settings
 # Specifies the objects to be fetched and indexed in the WorkPlace search along with fields
-# that needs to be included/excluded. The list of the objects supported are users.
+# that needs to be included/excluded. The list of the objects supported are users, recordings, 
+# channels, roles, meeting, chats, files, past-meetings and groups.
 # By default all the objects are fetched
 objects:
   users:
@@ -45,12 +46,15 @@ objects:
   past_meetings:
     include_fields:
     exclude_fields:
+  groups:
+    include_fields:
+    exclude_fields:
 
 #The time after which all the objects that are modified or created are fetched from Zoom. By default, all the objects present in the Zoom till the end_time are fetched
 start_time:
 #The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
 end_time:
-#The level of the logs the user wants to use in the log files. The possible values include: debug, info, warn, error. By default, the level is info
+#The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
 log_level: INFO
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3

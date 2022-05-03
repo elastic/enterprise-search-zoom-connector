@@ -23,7 +23,7 @@ install_requires = [
     "pytest-cov",
     "pytest-custom_exit_code",
     "pyyaml",
-    "requests_ntlm",
+    "requests_mock",
     "ruamel.yaml",
     "tika",
 ]
