@@ -5,12 +5,13 @@
 #
 
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 if sys.version_info < (3, 6):
     raise ValueError("Requires Python 3.6 or superior")
 
-from ees_connector import __version__  # NOQA
+from ees_zoom import __version__  # NOQA
 
 install_requires = [
     "cached_property",
@@ -20,20 +21,21 @@ install_requires = [
     "flake8",
     "pytest",
     "pytest-cov",
+    "pytest-custom_exit_code",
     "pyyaml",
-    "tika"
+    "requests_ntlm",
+    "ruamel.yaml",
+    "tika",
 ]
 
 description = ""
 
-for file_ in ("README", "CHANGELOG"):
-    with open("%s.rst" % file_) as f:
-        description += f.read() + "\n\n"
+with open("README.rst", encoding="utf-8") as readme_file:
+    description += readme_file.read() + "\n\n"
 
 
 classifiers = [
     "Programming Language :: Python",
-    "License :: OSI Approved :: Apache Software License",
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.6",
@@ -44,20 +46,21 @@ classifiers = [
 
 
 setup(
-    name="python connector template",
+    name="ees_zoom",
     version=__version__,
-    url="https://example.com",
+    url="someurl",
     packages=find_packages(),
     long_description=description.strip(),
-    description=("This is a template python project for a Enterprise Search Connector."),
+    description=("Some connectors"),
     author="author",
     author_email="email",
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
     install_requires=install_requires,
+    data_files=[("config", ["zoom_connector.yml"])],
     entry_points="""
       [console_scripts]
-      run_connector=connector.cli:main
+      ees_zoom = ees_zoom.cli:main
       """,
 )
