@@ -15,6 +15,17 @@ from tika import parser
 from .constant import RFC_3339_DATETIME_FORMAT
 
 
+class RetryCountExceededException(Exception):
+    """Exception raised when retry for api call exceeds.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="Retry Count Exceeded while fetching data from Zoom."):
+        super().__init__(message)
+
+
 def extract(content):
     """Extracts the contents
     :param content: content to be extracted
@@ -60,6 +71,8 @@ def retry(exception_list):
                     )
                     time.sleep(2**retry)
                     retry += 1
+            if retry > self.retry_count:
+                raise RetryCountExceededException
 
         return execute
 

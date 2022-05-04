@@ -147,10 +147,10 @@ def test_ingestion(settings):
 
 @pytest.mark.zoom
 def test_zoom(settings):
-    """Tests the connection to the zoom by calling a basic get request to fetch user from zoom api."""
+    """Tests the connection to the Zoom by calling a basic get request to fetch user from Zoom api."""
     configs, logger = settings
     retry_count = int(configs.get_value("retry_count"))
-    print("Starting zoom connectivity tests..")
+    print("Starting Zoom connectivity tests..")
     zoom_client = ZoomClient(configs, logger)
     retry = 0
     while retry <= retry_count:
@@ -164,7 +164,7 @@ def test_zoom(settings):
             if retry == retry_count:
                 assert (
                     False
-                ), f"Exception occurred while connecting to zoom /users api {exception} \
+                ), f"Exception occurred while connecting to Zoom /users api {exception} \
                     retry_count_no: {retry}"
             retry += 1
 

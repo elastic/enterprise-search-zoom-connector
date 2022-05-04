@@ -64,9 +64,9 @@ class ZoomClient:
         )
     )
     def get_token(self):
-        """Generates and stores the access token and refresh token to call ZOOM APIs"""
+        """Generates access token and stores the refresh token to call Zoom APIs"""
         self.logger.info(
-            f"Generating the access token for the client ID: {self.client_id}..."
+            f"Generating the access token and updating refresh token for the client ID: {self.client_id}..."
         )
         invalid_field = ""
         try:
