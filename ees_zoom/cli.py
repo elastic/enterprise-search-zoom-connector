@@ -29,7 +29,7 @@ CMD_FULL_SYNC = "full-sync"
 CMD_INCREMENTAL_SYNC = "incremental-sync"
 CMD_DELETION_SYNC = "deletion-sync"
 CMD_PERMISSION_SYNC = "permission-sync"
-CMD_TEST_CONNECTIVITY = "test-connectivity"
+
 
 commands = {
     CMD_BOOTSTRAP: BootstrapCommand,
@@ -52,7 +52,8 @@ def _parser():
         metavar="CONFIGURATION_FILE_PATH",
         help="path to the configuration file",
     )
-    subparsers = parser.add_subparsers(dest="cmd", required=True)
+    subparsers = parser.add_subparsers(dest="cmd")
+    subparsers.required = True
     bootstrap = subparsers.add_parser(CMD_BOOTSTRAP)
     bootstrap.add_argument(
         "-n",
@@ -70,13 +71,10 @@ def _parser():
         metavar="ENTERPRISE_SEARCH_ADMIN_USER_NAME",
         help="Username of the workplace search admin account",
     )
-
     subparsers.add_parser(CMD_FULL_SYNC)
     subparsers.add_parser(CMD_INCREMENTAL_SYNC)
     subparsers.add_parser(CMD_DELETION_SYNC)
     subparsers.add_parser(CMD_PERMISSION_SYNC)
-    subparsers.add_parser(CMD_TEST_CONNECTIVITY)
-
     return parser
 
 
@@ -110,6 +108,5 @@ def run(args):
         print("Running incremental sync")
     elif args.cmd == CMD_DELETION_SYNC:
         print("Running deletion sync")
-    elif args.cmd == CMD_TEST_CONNECTIVITY:
-        print("Running connectivity test")
+    commands[args.cmd](args).execute()
     return 0

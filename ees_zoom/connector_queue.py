@@ -4,17 +4,19 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 import multiprocessing
+import threading
 from multiprocessing.queues import Queue
-
 from .constant import BATCH_SIZE
+
 from .utils import split_documents_into_equal_chunks
 
 
 class ConnectorQueue(Queue):
     """Class to support additional queue operations specific to the connector"""
 
-    def __init__(self):
+    def __init__(self, logger):
         ctx = multiprocessing.get_context()
+        self.logger = logger
         super(ConnectorQueue, self).__init__(ctx=ctx)
 
     def end_signal(self):
@@ -30,10 +32,9 @@ class ConnectorQueue(Queue):
         :param checkpoint_time: The end time that will be stored in the checkpoint as {'key': 'checkpoint_time'}
         :param indexing_type: The type of the indexing i.e. Full or Incremental
         """
-
         checkpoint = {
             "type": "checkpoint",
-            "data": (key, checkpoint_time, indexing_type),
+            "data": (checkpoint_time, indexing_type, key),
         }
         self.put(checkpoint)
 
@@ -43,5 +44,9 @@ class ConnectorQueue(Queue):
         """
         if documents:
             for chunk in split_documents_into_equal_chunks(documents, BATCH_SIZE):
-                document = {"type": "document_list", "data": chunk}
-                self.put(document)
+                documents_map = {"type": "document_list", "data": chunk}
+                self.put(documents_map)
+            self.logger.debug(
+                f"Thread ID {threading.get_ident()} added list of {len(documents)} \
+                    documents into the queue "
+            )

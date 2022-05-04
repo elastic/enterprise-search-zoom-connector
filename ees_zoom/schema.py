@@ -169,15 +169,27 @@ schema = {
                     },
                 },
             },
+            "groups": {
+                "type": "dict",
+                "nullable": True,
+                "schema": {
+                    "include_fields": {
+                        "nullable": True,
+                        "type": "list",
+                    },
+                    "exclude_fields": {
+                        "nullable": True,
+                        "type": "list",
+                    },
+                },
+            },
         },
     },
     "start_time": {
         "required": False,
         "type": "datetime",
         "max": datetime.datetime.utcnow(),
-        "default": (datetime.datetime.utcnow() - datetime.timedelta(days=180)).strftime(
-            RFC_3339_DATETIME_FORMAT
-        ),
+        "default": "2011-10-12T00:00:00Z",  # Zoom Creation Date
         "coerce": coerce_rfc_3339_date,
     },
     "end_time": {

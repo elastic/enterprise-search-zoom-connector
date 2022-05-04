@@ -56,7 +56,9 @@ class Checkpoint:
         :param current_time: current time
         :param obj_type: key for which checkpoint json file
         """
-        self.logger.info(f"Fetching the checkpoint details from the checkpoint file: {CHECKPOINT_PATH}")
+        self.logger.info(
+            f"Fetching the checkpoint details from the checkpoint file: {CHECKPOINT_PATH} for {obj_type}"
+        )
 
         start_time = self.config.get_value("start_time")
         end_time = self.config.get_value("end_time")
@@ -78,18 +80,22 @@ class Checkpoint:
                         )
                     else:
                         try:
-                            start_time = coerce_rfc_3339_date(checkpoint_list.get(obj_type)).strftime(
-                                RFC_3339_DATETIME_FORMAT
-                            )
+                            start_time = coerce_rfc_3339_date(
+                                checkpoint_list.get(obj_type)
+                            ).strftime(RFC_3339_DATETIME_FORMAT)
                             end_time = current_time
                         except ValueError as exception:
-                            raise IncorrectFormatError(obj_type, checkpoint_list.get(obj_type), exception)
+                            raise IncorrectFormatError(
+                                obj_type, checkpoint_list.get(obj_type), exception
+                            )
                 except ValueError as exception:
                     self.logger.exception(
                         f"Error while parsing the json file of the checkpoint store from path: {CHECKPOINT_PATH}. \
                         Error: {exception}"
                     )
-                    self.logger.info("Considering the start_time and end_time from the configuration file")
+                    self.logger.info(
+                        "Considering the start_time and end_time from the configuration file"
+                    )
 
         else:
             self.logger.debug(
@@ -147,7 +153,7 @@ class Checkpoint:
         with open(CHECKPOINT_PATH, "w", encoding="UTF-8") as checkpoint_store:
             try:
                 json.dump(checkpoint_list, checkpoint_store, indent=4)
-                self.logger.info("Successfully saved the checkpoint")
+                self.logger.info(f"Successfully saved the checkpoint for {obj_type}")
             except ValueError as exception:
                 self.logger.exception(
                     f"Error while updating the existing checkpoint json file. \

@@ -21,7 +21,7 @@ class PermissionSyncDisabledException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, message="Provided configuration was invalid"):
+    def __init__(self, message="The Permission flag is disabled"):
         super().__init__(message)
 
 

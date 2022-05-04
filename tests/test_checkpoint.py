@@ -82,8 +82,6 @@ def test_set_checkpoint_when_checkpoint_file_not_available(
     checkpoint_obj.set_checkpoint(current_time, index_type, obj_type)
     with open(CHECKPOINT_PATH, encoding="UTF-8") as checkpoint_store:
         checkpoint_list = json.load(checkpoint_store)
-    print("checkpoint list")
-    print(checkpoint_list)
     assert checkpoint_list[obj_type] == expected_time
 
 

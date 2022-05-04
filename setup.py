@@ -18,20 +18,20 @@ install_requires = [
     "ecs_logging",
     "elastic_enterprise_search",
     "flake8",
+    "iteration_utilities",
     "pytest",
     "pytest-cov",
     "pytest-custom_exit_code",
     "pyyaml",
-    "requests_ntlm",
+    "requests_mock",
     "ruamel.yaml",
     "tika",
 ]
 
 description = ""
 
-for file_ in ("README", "CHANGELOG"):
-    with open("%s.rst" % file_) as f:
-        description += f.read() + "\n\n"
+with open("README.rst", encoding="utf-8") as readme_file:
+    description += readme_file.read() + "\n\n"
 
 
 classifiers = [
@@ -47,12 +47,12 @@ classifiers = [
 
 
 setup(
-    name="ees_zoom_connector",
+    name="ees_zoom",
     version=__version__,
     url="https://example.com",
     packages=find_packages(),
     long_description=description.strip(),
-    description=("This is a python project for Enterprise Search Zoom Connector."),
+    description=("Some connectors"),
     author="author",
     author_email="email",
     include_package_data=True,

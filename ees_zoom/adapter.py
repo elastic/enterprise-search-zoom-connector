@@ -42,6 +42,7 @@ DEFAULT_SCHEMA = {
         "created_at": "date_time",
         "description": "message",
         "id": "id",
+        "title": "sender",
     },
     "files": {
         "created_at": "date_time",
@@ -54,5 +55,9 @@ DEFAULT_SCHEMA = {
         "created_at": "start_time",
         "id": "uuid",
         "title": "topic",
+    },
+    "groups": {
+        "id": "id",
+        "title": "name",
     },
 }

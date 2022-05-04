@@ -22,7 +22,10 @@ CONFIG_FILE = os.path.join(
 
 
 def settings():
-    """This function loads config from the file and returns it."""
+    """This function loads configuration from the file and initialize logger.
+    :returns configuration: Configuration instance
+    :returns logger: Logger instance
+    """
     configuration = Configuration(file_name=CONFIG_FILE)
 
     logger = logging.getLogger("unit_test_permission_sync")
@@ -33,27 +36,27 @@ def test_remove_all_permissions():
     """Test that remove_all_permissions remove all permissions from Enterprise Search."""
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
-    permission_obj = PermissionSyncCommand(args)
+    permission_object = PermissionSyncCommand(args)
     mocked_respose = {"results": [{"user": "user1", "permissions": "permission1"}]}
-    permission_obj.workplace_search_client.list_permissions = Mock(
+    permission_object.workplace_search_client.list_permissions = Mock(
         return_value=mocked_respose
     )
-    permission_obj.workplace_search_client.remove_user_permissions = Mock(
+    permission_object.workplace_search_client.remove_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
-    mock.permission_obj.remove_all_permissions()
-    mock.permission_obj.remove_all_permissions.assert_called()
+    mock.permission_object.remove_all_permissions()
+    mock.permission_object.remove_all_permissions.assert_called()
 
 
 def test_workplace_add_permission():
     """Test that workplace_add_permission successfully add permission to Enterprise Search."""
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
-    permission_obj = PermissionSyncCommand(args)
-    permission_obj.workplace_search_client.add_user_permissions = Mock(
+    permission_object = PermissionSyncCommand(args)
+    permission_object.workplace_search_client.add_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
-    mock.permission_obj.workplace_add_permission("user1", "permission1")
-    mock.permission_obj.workplace_add_permission.assert_called()
+    mock.permission_object.workplace_add_permission("user1", "permission1")
+    mock.permission_object.workplace_add_permission.assert_called()

@@ -20,7 +20,10 @@ CONFIG_FILE = os.path.join(
 
 
 def settings():
-    """This function loads config from the file and returns it."""
+    """This function loads configuration from the file and initialize logger.
+    :returns configuration: Configuration instance
+    :returns logger: Logger instance
+    """
     configuration = Configuration(file_name=CONFIG_FILE)
 
     logger = logging.getLogger("unit_test_indexing")
@@ -35,13 +38,13 @@ def create_enterprise_search_obj():
         enterprise_search_host,
         http_auth=configs.get_value("enterprise_search.api_key"),
     )
-    queue = ConnectorQueue()
+    queue = ConnectorQueue(logger)
     queue.end_signal()
     return SyncEnterpriseSearch(configs, logger, workplace_search_client, queue)
 
 
 @pytest.mark.parametrize(
-    "documents, mock_response, log_msg",
+    "documents, mock_response",
     [
         (
             [
@@ -63,19 +66,24 @@ def create_enterprise_search_obj():
                 },
             ],
             {"results": [{"id": "0", "errors": []}, {"id": "1", "errors": []}]},
-            "Successfully indexed 2 to the workplace out of 2",
         )
     ],
 )
-def test_index_document(documents, mock_response, log_msg, caplog):
-    """Test that index_document successfully index documents in Enterprise Search."""
+def test_index_document(documents, mock_response, caplog):
+    """Test that index_document successfully index documents in Enterprise Search.
+    :param documents: generated document.
+    :param mock_response: mocked returned response
+    :param caplog: records the attributes from current stage.
+    """
     caplog.set_level("INFO")
-    indexer_obj = create_enterprise_search_obj()
-    indexer_obj.workplace_search_client.index_documents = Mock(
+    indexer_object = create_enterprise_search_obj()
+    indexer_object.workplace_search_client.index_documents = Mock(
         return_value=mock_response
     )
-    indexer_obj.index_documents(documents)
-    assert log_msg in caplog.text
+    indexer_object.index_documents(documents)
+    assert indexer_object.total_document_indexed == 2
+    indexer_object.queue.close()
+    indexer_object.queue.join_thread()
 
 
 @pytest.mark.parametrize(
@@ -101,20 +109,29 @@ def test_index_document(documents, mock_response, log_msg, caplog):
 def test_index_document_when_error_occurs(
     documents, mock_response, log_level, error_msg, caplog
 ):
-    """Test that index_document give proper error message if document not indexed."""
+    """Test that index_document give proper error message if document not indexed.
+    :param documents: Generated document ready to be indexed.
+    :param mock_response: Mocker response object
+    :param log_msg: Log message to display.
+    :param caplog: Pytest logging object.
+    """
     caplog.set_level(log_level)
-    indexer_obj = create_enterprise_search_obj()
-    indexer_obj.workplace_search_client.index_documents = Mock(
+    indexer_object = create_enterprise_search_obj()
+    indexer_object.workplace_search_client.index_documents = Mock(
         return_value=mock_response
     )
-    indexer_obj.index_documents(documents)
+    indexer_object.index_documents(documents)
     assert error_msg in caplog.text
+    indexer_object.queue.close()
+    indexer_object.queue.join_thread()
 
 
 def test_perform_sync_enterprise_search():
     """Test that perform_sync of sync_enterprise_search pull documents from the queue and index it to the \
          Enterprise Search."""
-    indexer_obj = create_enterprise_search_obj()
-    indexer_obj.index_documents = Mock(return_value=True)
-    indexer_obj.perform_sync()
-    assert indexer_obj.queue.empty()
+    indexer_object = create_enterprise_search_obj()
+    indexer_object.index_documents = Mock(return_value=True)
+    indexer_object.perform_sync()
+    assert indexer_object.queue.empty()
+    indexer_object.queue.close()
+    indexer_object.queue.join_thread()
