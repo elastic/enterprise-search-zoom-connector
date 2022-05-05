@@ -9,3 +9,6 @@
 
 RFC_3339_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 BATCH_SIZE = 100
+ROLES = "roles"
+GROUPS = "groups"
+USERS = "users"

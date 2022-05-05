@@ -17,7 +17,7 @@ from datetime import datetime
 from .base_command import BaseCommand
 from .checkpointing import Checkpoint
 from .connector_queue import ConnectorQueue
-from .constant import CHANNELS, GROUPS, RFC_3339_DATETIME_FORMAT, ROLES, USERS
+from .constant import GROUPS, RFC_3339_DATETIME_FORMAT, ROLES, USERS
 from .sync_enterprise_search import SyncEnterpriseSearch
 from .sync_zoom import SyncZoom
 from .utils import get_current_time
@@ -60,7 +60,7 @@ class IncrementalSyncCommand(BaseCommand):
             )
             global_keys.extend(global_keys_for_roles)
             for object_type in self.config.get_value("objects"):
-                if object_type in [ROLES, CHANNELS, GROUPS]:
+                if object_type in [ROLES, GROUPS]:
                     continue
                 queue.put_checkpoint(object_type, current_time, INDEXING_TYPE)
             try:
@@ -127,7 +127,7 @@ class IncrementalSyncCommand(BaseCommand):
         objects_time_range = {}
         self.logger.info(f"Indexing started at: {current_time}")
         for object_type in self.config.get_value("objects"):
-            if object_type in [ROLES, CHANNELS, GROUPS]:
+            if object_type in [ROLES, GROUPS]:
                 continue
             start_time, end_time = checkpoint.get_checkpoint(current_time, object_type)
             start_time_end_time_list = [
