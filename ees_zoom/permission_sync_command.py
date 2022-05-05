@@ -21,7 +21,7 @@ class PermissionSyncDisabledException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, message="Provided configuration was invalid"):
+    def __init__(self, message="The Permission flag is disabled"):
         super().__init__(message)
 
 
@@ -51,7 +51,7 @@ class PermissionSyncCommand(BaseCommand):
         self.logger.debug("Initializing the Permission Indexing class")
         self.ws_source = config.get_value("enterprise_search.source_id")
         self.enable_document_permission = config.get_value("enable_document_permission")
-        self.user_mapping = config.get_value("connector.user_mapping")
+        self.user_mapping = config.get_value("zoom.user_mapping")
 
     def remove_all_permissions(self):
         """Removes all the permissions present in the workplace"""
@@ -71,7 +71,9 @@ class PermissionSyncCommand(BaseCommand):
                     )
                 self.logger.info("Successfully removed the permissions from the workplace.")
         except Exception as exception:
-            self.logger.exception(f"Error while removing the permissions from the workplace. Error: {exception}")
+            self.logger.exception(
+                f"Error while removing the permissions from the workplace. Error: {exception}"
+            )
 
     def workplace_add_permission(self, user_name, permissions):
         """This method when invoked would index the permission provided in the paramater
@@ -124,6 +126,7 @@ class PermissionSyncCommand(BaseCommand):
         else:
             self.logger.error(
                 f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty. \
-                Please add the source_user->enterprise_search_user mappings to sync the permissions in the Enterprise Search"
+                Please add the source_user->enterprise_search_user mappings to sync the permissions in the \
+                    Enterprise Search"
             )
             raise EmptyMappingException

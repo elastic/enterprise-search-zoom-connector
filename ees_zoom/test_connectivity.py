@@ -21,7 +21,7 @@ from .configuration import Configuration
 @pytest.fixture(name="settings")
 def fixture_settings():
     """This function loads config from the file and returns it along with retry_count setting."""
-    configuration = Configuration(file_name="config.yml")
+    configuration = Configuration(file_name="zoom_connector.yml")
 
     logger = logging.getLogger("test_connectivity")
     return configuration, logger

@@ -31,7 +31,7 @@ class BaseCommand:
 
     def execute(self):
         """Run the command.
-        This method is overriden by actual commands with logic
+        This method is overridden by actual commands with logic
         that is specific to each command implementing it."""
         raise NotImplementedError
 
@@ -66,10 +66,13 @@ class BaseCommand:
         host = self.config.get_value("enterprise_search.host_url")
 
         if hasattr(args, "user") and args.user:
-            return WorkplaceSearch(f"{host}/api/ws/v1/sources", http_auth=(args.user, args.password))
+            return WorkplaceSearch(
+                f"{host}/api/ws/v1/sources", http_auth=(args.user, args.password)
+            )
         else:
             return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("enterprise_search.api_key")
+                f"{host}/api/ws/v1/sources",
+                http_auth=self.config.get_value("enterprise_search.api_key"),
             )
 
     @cached_property

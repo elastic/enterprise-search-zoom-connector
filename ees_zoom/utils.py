@@ -5,8 +5,6 @@
 #
 """This module contains un-categorized utility methods.
 """
-import csv
-import os
 import time
 import urllib.parse
 from datetime import datetime
@@ -65,24 +63,6 @@ def retry(exception_list):
         return execute
 
     return decorator
-
-
-def fetch_users_from_csv_file(user_mapping, logger):
-    """This method is used to map sid to username from csv file.
-    :param user_mapping: path to csv file containing source user to enterprise search mapping
-    :param logger: logger object
-    :returns: dictionary of sid and username
-    """
-    rows = {}
-    if user_mapping and os.path.exists(user_mapping) and os.path.getsize(user_mapping) > 0:
-        with open(user_mapping, encoding="utf-8") as mapping_file:
-            try:
-                csvreader = csv.reader(mapping_file)
-                for row in csvreader:
-                    rows[row[0]] = row[1]
-            except csv.Error as e:
-                logger.exception(f"Error while reading user mapping file at the location: {user_mapping}. Error: {e}")
-    return rows
 
 
 def split_list_into_buckets(documents, total_buckets):
