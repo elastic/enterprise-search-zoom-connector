@@ -6,7 +6,7 @@
 
 import sys
 
-from setuptools import find_packages, setup
+from setuptools import setup, find_packages
 
 if sys.version_info < (3, 6):
     raise ValueError("Requires Python 3.6 or superior")
@@ -37,6 +37,7 @@ with open("README.rst", encoding="utf-8") as readme_file:
 
 classifiers = [
     "Programming Language :: Python",
+    "License :: OSI Approved :: Apache Software License",
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.6",
@@ -49,7 +50,7 @@ classifiers = [
 setup(
     name="ees_zoom",
     version=__version__,
-    url="someurl",
+    url="https://example.com",
     packages=find_packages(),
     long_description=description.strip(),
     description=("Some connectors"),
