@@ -6,5 +6,6 @@
 """This module contains all the constants used throughout the code.
 """
 
+
 RFC_3339_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 BATCH_SIZE = 100
