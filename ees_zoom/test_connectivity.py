@@ -133,7 +133,6 @@ def test_ingestion(settings):
     print("Enterprise Search ingestion tests completed..")
 
 
-
 @pytest.mark.zoom
 def test_zoom(settings):
     """Tests the connection to the Zoom by calling a basic get request to fetch user from Zoom api."""
