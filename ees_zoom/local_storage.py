@@ -11,14 +11,17 @@ IDS_PATH = os.path.join(os.path.dirname(__file__), "doc_id.json")
 
 class LocalStorage:
     """This class contains all the methods to perform operations on doc_id.json file.
+
     The doc_id.json file is a local storage that the connector uses to track the identifiers(IDs) of the documents
     that were successfully indexed to the Enterprise Search.
     This storage is then traversed during the deletion sync to validate if any of these indexed documents have been
     later deleted from the source, if so, the deletion sync will delete those documents from the Enterprise Search.
+
     The structure of the doc_id.json is {'global_keys': [], 'delete_keys':[]}:
         - global_keys: Stores all the document ids that are successfully indexed and present in the Enterprise Search.
         - delete_keys: Store all the document ids that are NOT recently updated, so the deletion sync
           would just check if those not recently updated documents are present anymore in the source
+
     Use this class to perform read/write operations to the doc_id.json file(Local Storage)
     """
 

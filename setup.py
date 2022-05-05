@@ -19,6 +19,7 @@ install_requires = [
     "ecs_logging",
     "elastic_enterprise_search",
     "flake8",
+    "iteration_utilities",
     "pytest",
     "pytest-cov",
     "pytest-custom_exit_code",

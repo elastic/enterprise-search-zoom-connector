@@ -104,10 +104,10 @@ def split_documents_into_equal_chunks(documents, chunk_size):
     list_of_chunks = []
     for i in range(0, len(documents), chunk_size):
         if type(documents) is dict:
-            partitioned_chunk = list(documents.items())[i: i + chunk_size]
+            partitioned_chunk = list(documents.items())[i:i + chunk_size]
             list_of_chunks.append(dict(partitioned_chunk))
         else:
-            list_of_chunks.append(documents[i: i + chunk_size])
+            list_of_chunks.append(documents[i:i + chunk_size])
     return list_of_chunks
 
 
