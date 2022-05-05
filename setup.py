@@ -5,7 +5,6 @@
 #
 
 import sys
-
 from setuptools import setup, find_packages
 
 if sys.version_info < (3, 6):
