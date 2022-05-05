@@ -87,12 +87,7 @@ class BaseCommand:
         enable_document_permission = self.config.get_value("enable_document_permission")
         user_mapping = self.config.get_value("zoom.user_mapping")
         mappings = {}
-        if (
-            enable_document_permission
-            and user_mapping
-            and os.path.exists(user_mapping)
-            and os.path.getsize(user_mapping) > 0
-        ):
+        if enable_document_permission and user_mapping and os.path.exists(user_mapping) and os.path.getsize(user_mapping) > 0:
             with open(user_mapping, encoding="utf-8") as mapping_file:
                 try:
                     csvreader = csv.reader(mapping_file)
