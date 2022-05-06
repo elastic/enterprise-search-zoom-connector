@@ -123,11 +123,7 @@ class PermissionSyncCommand(BaseCommand):
         if not self.enable_document_permission:
             self.logger.warning("Exiting as the enable permission flag is set to False")
             raise PermissionSyncDisabledException
-        if (
-            self.user_mapping
-            and os.path.exists(self.user_mapping)
-            and os.path.getsize(self.user_mapping) > 0
-        ):
+        if self.user_mapping and os.path.exists(self.user_mapping) and os.path.getsize(self.user_mapping) > 0:
             self.remove_all_permissions()
             self.set_permissions_list(self.zoom_enterprise_search_mappings)
         else:
