@@ -7,9 +7,18 @@
 import os
 import sys
 
+import ruamel.yaml
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from ees_zoom.utils import (split_documents_into_equal_chunks,  # noqa
-                            split_list_into_buckets, url_encode) # noqa
+                            split_list_into_buckets, url_encode, update_yml) # noqa
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+CONFIG_FILE = os.path.join(
+    os.path.join(os.path.dirname(__file__), "config"),
+    "zoom_connector.yml",
+)
 
 
 def test_split_list_into_buckets():
@@ -71,3 +80,23 @@ def test_split_documents_into_equal_chunks():
     expected_result = [["1", "3", "4"], ["6", "7", "5"], ["8", "9", "2"], ["0", "111"]]
     result = split_documents_into_equal_chunks(list_to_split, chunk_size)
     assert expected_result == result
+
+
+def test_update_yml():
+    """Tests updating mechanism of yml file."""
+    refresh_token = "dummy_refresh_token"
+    yaml = ruamel.yaml.YAML()
+    with open(CONFIG_FILE, "r", encoding="UTF-8") as file:
+        yml_file_data_before_updation = yaml.load(file)
+
+    update_yml(CONFIG_FILE, "zoom.refresh_token", refresh_token)
+
+    with open(CONFIG_FILE, "r", encoding="UTF-8") as file:
+        yml_file_data_after_updation = yaml.load(file)
+
+    for key, value_before_updation in yml_file_data_before_updation.items():
+        if key != "zoom.refresh_token":
+            assert value_before_updation == yml_file_data_after_updation[key]
+        else:
+            assert refresh_token == yml_file_data_after_updation[key]
+            update_yml(CONFIG_FILE, "zoom.refresh_token", value_before_updation)

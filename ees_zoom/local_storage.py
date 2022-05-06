@@ -3,6 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+import copy
 import json
 import os
 
@@ -51,4 +52,19 @@ class LocalStorage:
             try:
                 json.dump(ids, ids_file, indent=4)
             except ValueError as exception:
-                self.logger.exception(f"Error while updating the doc_id json file. Error: {exception}")
+                self.logger.exception(
+                    f"Error while updating the doc_id json file. Error: {exception}"
+                )
+
+    def get_storage_with_collection(self):
+        """Returns a dictionary containing the locally stored IDs of files fetched from Zoom"""
+        storage_with_collection = {"global_keys": [], "delete_keys": []}
+        ids_collection = self.load_storage()
+        storage_with_collection["delete_keys"] = copy.deepcopy(
+            ids_collection.get("global_keys")
+        )
+        storage_with_collection["global_keys"] = copy.deepcopy(
+            ids_collection["global_keys"]
+        )
+
+        return storage_with_collection
