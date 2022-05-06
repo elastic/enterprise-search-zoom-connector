@@ -55,8 +55,8 @@ class ZoomRoles:
                 "content-type": "application/json",
             }
             roles_response = requests.get(url=url, headers=headers)
-            response = json.loads(roles_response.text)
             if roles_response and roles_response.status_code == 200:
+                response = json.loads(roles_response.text)
                 self.roles_list.extend(response[ROLES])
             elif roles_response.status_code == 401:
                 self.set_list_of_roles_from_zoom()
@@ -136,8 +136,8 @@ class ZoomRoles:
                 "content-type": "application/json",
             }
             roles_response = requests.get(url=url, headers=headers)
-            response = json.loads(roles_response.text)
             if roles_response and roles_response.status_code == 200:
+                response = json.loads(roles_response.text)
                 privileges_of_role.extend(response["privileges"])
             elif roles_response.status_code == 401:
                 return self.fetch_role_permissions(role_id)
@@ -174,34 +174,24 @@ class ZoomRoles:
         :returns: list of member_id having role as role_id.
         """
         users_list = []
-        next_page_token = ""
+        next_page_token = True
         try:
-            url = f"https://api.zoom.us/v2/roles/{role_id}/members?page_size=300"
-            headers = {
-                "authorization": f"Bearer {self.zoom_client.access_token}",
-                "content-type": "application/json",
-            }
-            member_response = requests.get(url=url, headers=headers)
-            response = json.loads(member_response.text)
-            if member_response and member_response.status_code == 200:
-                next_page_token = response["next_page_token"]
-                users_list.extend(response["members"])
-            elif member_response.status_code == 401:
-                return self.fetch_members_of_role(role_id)
-            else:
-                member_response.raise_for_status()
-            while len(next_page_token) > 0:
-                headers["authorization"] = f"Bearer {self.zoom_client.access_token}"
-                url = f"https://api.zoom.us/v2/roles/{role_id}/members?page_size=300&next_page_token={next_page_token}"
+            while next_page_token:
+                url = f"https://api.zoom.us/v2/roles/{role_id}/members?page_size=300"
+                if next_page_token is not True:
+                    url = f"{url}&next_page_token={next_page_token}"
+                headers = {
+                    "authorization": f"Bearer {self.zoom_client.access_token}",
+                    "content-type": "application/json",
+                }
                 member_response = requests.get(url=url, headers=headers)
-                response = json.loads(member_response.text)
                 if member_response and member_response.status_code == 200:
+                    response = json.loads(member_response.text)
                     next_page_token = response["next_page_token"]
                     users_list.extend(response["members"])
                 elif member_response.status_code == 401:
                     if time.time() > self.zoom_client.access_token_expiration:
                         self.zoom_client.get_token()
-                    continue
                 else:
                     member_response.raise_for_status()
         except (

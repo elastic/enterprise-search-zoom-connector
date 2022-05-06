@@ -45,8 +45,8 @@ class ZoomGroups:
                 "content-type": "application/json",
             }
             groups_response = requests.get(url=url, headers=headers)
-            response = json.loads(groups_response.text)
             if groups_response and groups_response.status_code == 200:
+                response = json.loads(groups_response.text)
                 self.groups_list.extend(response[GROUPS])
             elif groups_response.status_code == 401:
                 self.set_groups_list()
