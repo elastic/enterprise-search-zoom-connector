@@ -9,9 +9,21 @@ import time
 import urllib.parse
 from datetime import datetime
 
+import ruamel.yaml
 from tika import parser
 
 from .constant import RFC_3339_DATETIME_FORMAT
+
+
+class RetryCountExceededException(Exception):
+    """Exception raised when retry for api call exceeds.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="Retry Count Exceeded while fetching data from Zoom."):
+        super().__init__(message)
 
 
 def extract(content):
@@ -59,6 +71,8 @@ def retry(exception_list):
                     )
                     time.sleep(2**retry)
                     retry += 1
+            if retry > self.retry_count:
+                raise RetryCountExceededException
 
         return execute
 
@@ -100,3 +114,17 @@ def split_documents_into_equal_chunks(documents, chunk_size):
 def get_current_time():
     """Returns current time in rfc 3339 format"""
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
+
+
+def update_yml(config_file_path, config_field_name, refresh_token):
+    """Function will update config file with new refresh_token
+    :param config_file_path: Path for config_file.
+    :param config_field_name: name of config field for which value is updated.
+    :param refresh_token: new refresh token.
+    """
+    yaml = ruamel.yaml.YAML()
+    with open(config_file_path, "r", encoding="UTF-8") as file:
+        yml_file_data = yaml.load(file)
+        yml_file_data.update({config_field_name: f"{refresh_token}"})
+    with open(config_file_path, "w", encoding="UTF-8") as file:
+        yaml.dump(yml_file_data, file)
