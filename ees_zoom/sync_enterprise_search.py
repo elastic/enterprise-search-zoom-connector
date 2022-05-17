@@ -10,18 +10,19 @@ import threading
 
 from iteration_utilities import unique_everseen
 
-
 from .constant import BATCH_SIZE
 from .utils import split_documents_into_equal_chunks
+
+CONNECTION_TIMEOUT = 100000
 
 
 class SyncEnterpriseSearch:
     """This class contains common logic for indexing to workplace search"""
 
-    def __init__(self, config, logger, workplace_search_client, queue):
+    def __init__(self, config, logger, workplace_search_custom_client, queue):
         self.config = config
         self.logger = logger
-        self.workplace_search_client = workplace_search_client
+        self.workplace_search_custom_client = workplace_search_custom_client
         self.queue = queue
         self.ws_source = config.get_value("enterprise_search.source_id")
         self.enterprise_search_sync_thread_count = config.get_value(
@@ -39,25 +40,21 @@ class SyncEnterpriseSearch:
         :param documents: list of documents to be indexed
         """
         self.total_documents_found += len(documents)
-        try:
-            if documents:
-                documents_indexed = 0
-                responses = self.workplace_search_client.index_documents(
-                    content_source_id=self.ws_source,
-                    documents=documents,
-                )
-                for document in responses["results"]:
-                    if not document["errors"]:
-                        documents_indexed += 1
-                        self.indexed_documents_ids.add(document["id"])
-                    else:
-                        self.logger.error(
-                            f"Unable to index the document with id: {document['id']} Error {document['errors']}"
-                        )
-                self.total_document_indexed += documents_indexed
-        except Exception as exception:
-            self.logger.exception(f"Error while indexing the files. Error: {exception}")
-            raise exception
+        if documents:
+            documents_indexed = 0
+            responses = self.workplace_search_custom_client.index_documents(
+                documents,
+                CONNECTION_TIMEOUT,
+            )
+            for document in responses["results"]:
+                if not document["errors"]:
+                    documents_indexed += 1
+                    self.indexed_documents_ids.add(document["id"])
+                else:
+                    self.logger.error(
+                        f"Unable to index the document with id: {document['id']} Error {document['errors']}"
+                    )
+            self.total_document_indexed += documents_indexed
 
     def perform_sync(self):
         """Pull documents from the queue and synchronize it to the Enterprise Search."""

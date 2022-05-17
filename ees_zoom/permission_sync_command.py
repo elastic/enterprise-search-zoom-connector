@@ -38,10 +38,10 @@ class EmptyMappingException(Exception):
 
 
 class PermissionSyncCommand(BaseCommand):
-    """This class contains logic to sync user permissions from the source.
+    """This class contains logic to sync user permissions from the Zoom.
 
     It can be used to run the job that will periodically sync permissions
-    from the source to Elastic Enterprise Search."""
+    from the Zoom to Elastic Enterprise Search."""
 
     def __init__(self, args):
         super().__init__(args)
@@ -56,20 +56,12 @@ class PermissionSyncCommand(BaseCommand):
     def remove_all_permissions(self):
         """Removes all the permissions present in the workplace"""
         try:
-            user_permission = self.workplace_search_client.list_permissions(
-                content_source_id=self.ws_source,
-            )
-
+            user_permission = self.workplace_search_custom_client.list_permissions()
             if user_permission:
                 self.logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission["results"]
                 for permission in permission_list:
-                    self.workplace_search_client.remove_user_permissions(
-                        content_source_id=self.ws_source,
-                        user=permission["user"],
-                        body={"permissions": permission["permissions"]},
-                    )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                    self.workplace_search_custom_client.remove_permissions(permission)
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
@@ -90,27 +82,9 @@ class PermissionSyncCommand(BaseCommand):
                 if zoom_user in role_members_ids:
                     for enterprise_search_user in enterprise_search_users:
                         role_permissions.append(enterprise_search_user)
-                        self.workplace_add_permission(
+                        self.workplace_search_custom_client.add_permissions(
                             enterprise_search_user, role_permissions
                         )
-
-    def workplace_add_permission(self, user_name, permissions):
-        """This method when invoked would index the permission provided in the paramater
-        for the user in parameter user_name
-        :param permissions: list of permissions
-        :param user_name: user to assign permissions
-        """
-        try:
-            self.workplace_search_client.add_user_permissions(
-                content_source_id=self.ws_source,
-                user=user_name,
-                body={"permissions": permissions},
-            )
-            self.logger.info(f"Successfully indexed the permissions for user {user_name} to the workplace")
-        except Exception as exception:
-            self.logger.exception(
-                f"Error while indexing the permissions for user: {user_name} to the workplace. Error: {exception}"
-            )
 
     def execute(self):
         """Runs the permission indexing logic.

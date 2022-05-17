@@ -42,10 +42,10 @@ def test_remove_all_permissions():
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
     mocked_respose = {"results": [{"user": "user1", "permissions": "permission1"}]}
-    permission_object.workplace_search_client.list_permissions = Mock(
+    permission_object.workplace_search_custom_client.list_permissions = Mock(
         return_value=mocked_respose
     )
-    permission_object.workplace_search_client.remove_user_permissions = Mock(
+    permission_object.workplace_search_custom_client.remove_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
@@ -58,7 +58,7 @@ def test_workplace_add_permission():
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
-    permission_object.workplace_search_client.add_user_permissions = Mock(
+    permission_object.workplace_search_custom_client.add_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
@@ -94,14 +94,14 @@ def test_set_permissions_list(
         dummy_user_ids = ["zoom_user_id", "zoom_user_id_2"]
         mock_role_permission.return_value = dummy_permissions
         mock_members_of_role.return_value = dummy_user_ids
-        permission_sync.workplace_search_client.add_user_permissions = Mock(
+        permission_sync.workplace_search_custom_client.add_user_permissions = Mock(
             return_value=True
         )
         permission_sync.set_permissions_list(
             permission_sync.zoom_enterprise_search_mappings
         )
 
-        permission_sync.workplace_search_client.add_user_permissions = Mock(
+        permission_sync.workplace_search_custom_client.add_user_permissions = Mock(
             return_value=True
         )
         mock = Mock()
