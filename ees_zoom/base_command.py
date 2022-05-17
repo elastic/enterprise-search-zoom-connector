@@ -19,6 +19,7 @@ from elastic_enterprise_search import WorkplaceSearch
 
 from .configuration import Configuration
 from .local_storage import LocalStorage
+from .zoom_client import ZoomClient
 
 
 class BaseCommand:
@@ -80,6 +81,11 @@ class BaseCommand:
         """Get the configuration for the connector for the running command."""
         file_name = self.args.config_file
         return Configuration(file_name)
+
+    @cached_property
+    def zoom_client(self):
+        """Get the Zoom client instance for the running command."""
+        return ZoomClient(self.config, self.logger)
 
     @cached_property
     def local_storage(self):

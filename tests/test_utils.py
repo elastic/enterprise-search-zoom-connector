@@ -11,6 +11,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from ees_zoom.utils import (split_documents_into_equal_chunks,  # noqa
                             split_list_into_buckets, url_encode) # noqa
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+CONFIG_FILE = os.path.join(
+    os.path.join(os.path.dirname(__file__), "config"),
+    "zoom_connector.yml",
+)
+
 
 def test_split_list_into_buckets():
     """Test that divide large number of documents amongst the total buckets."""

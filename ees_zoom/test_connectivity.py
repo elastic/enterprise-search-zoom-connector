@@ -16,6 +16,7 @@ import pytest
 from elastic_enterprise_search import WorkplaceSearch
 
 from .configuration import Configuration
+from .zoom_client import ZoomClient
 
 
 @pytest.fixture(name="settings")
@@ -130,3 +131,29 @@ def test_ingestion(settings):
                 retry += 1
 
     print("Enterprise Search ingestion tests completed..")
+
+
+@pytest.mark.zoom
+def test_zoom(settings):
+    """Tests the connection to the Zoom by calling a basic get request to fetch user from Zoom api."""
+    configs, logger = settings
+    retry_count = int(configs.get_value("retry_count"))
+    print("Starting Zoom connectivity tests..")
+    zoom_client = ZoomClient(configs, logger)
+    retry = 0
+    while retry <= retry_count:
+        try:
+            zoom_client.get_token()
+            if zoom_client.access_token:
+                assert True
+                break
+        except Exception as exception:
+            logger.exception(exception)
+            if retry == retry_count:
+                assert (
+                    False
+                ), f"Exception occurred while connecting to Zoom /users api {exception} \
+                    retry_count_no: {retry}"
+            retry += 1
+
+    print("Zoom connectivity tests completed..")
