@@ -397,7 +397,7 @@ Each Zoom connector extracts and syncs the following data from Zoom:
 - Chats
 - Files
 
-The connector handles Zoom pages composed of various web parts, it extracts content from various document formats, and it performs optical character recognition (OCR) to extract content from images.
+The connector handles Zoom pages composed of various web parts, extracts content from various document formats, and uses optical character recognition (OCR) to extract content from images.
 
 You can customize extraction and syncing per connector. See [Customize extraction and syncing](#customize-extraction-and-syncing).
 
