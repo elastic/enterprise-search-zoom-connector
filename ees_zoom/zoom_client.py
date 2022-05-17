@@ -13,7 +13,10 @@ import time
 import requests
 import requests.exceptions
 
-from .utils import retry, update_yml
+from .secrets_storage import SecretsStorage
+from .utils import retry
+
+ZOOM_AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
 
 
 class AccessTokenGenerationException(Exception):
@@ -36,7 +39,9 @@ class ZoomClient:
         self.retry_count = int(config.get_value("retry_count"))
         self.client_id = config.get_value("zoom.client_id")
         self.client_secret = config.get_value("zoom.client_secret")
-        self.refresh_token = config.get_value("zoom.refresh_token")
+        self.authorization_code = config.get_value("zoom.authorization_code")
+        self.redirect_uri = config.get_value("zoom.redirect_uri")
+        self.secrets_storage = SecretsStorage(config, logger)
         self.logger = logger
         self.config_file_path = config.file_name
 
@@ -64,13 +69,18 @@ class ZoomClient:
         )
     )
     def get_token(self):
-        """Generates access token and stores the refresh token to call Zoom APIs"""
+        """This module generates access token and refresh token using stored refresh token. If refresh token is not stored then uses
+        authorization code."""
         self.logger.info(
             f"Generating the access token and updating refresh token for the client ID: {self.client_id}..."
         )
+        refresh_token = self.secrets_storage.get_refresh_token()
+        if refresh_token and len(refresh_token):
+            url = f"{ZOOM_AUTH_BASE_URL}refresh_token&refresh_token={refresh_token}"
+        else:
+            url = f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}&redirect_uri={self.redirect_uri}"
         invalid_field = ""
         try:
-            url = f"""https://zoom.us/oauth/token?refresh_token={self.refresh_token}&grant_type=refresh_token"""
             response = requests.post(
                 url=url,
                 headers=self.get_headers(),
@@ -78,17 +88,18 @@ class ZoomClient:
             json_data = json.loads(response.text)
             response.raise_for_status()
             if response and response.status_code == requests.codes.ok:
-                self.refresh_token = json_data["refresh_token"]
+                refresh_token = json_data["refresh_token"]
                 self.access_token = json_data["access_token"]
                 self.access_token_expiration = time.time() + 3500
-                update_yml(
-                    self.config_file_path, "zoom.refresh_token", self.refresh_token
-                )
+                self.secrets_storage.set_refresh_token(refresh_token)
         except requests.exceptions.HTTPError as http_error:
             if response.status_code in [400, 401]:
-                reason = json_data["reason"]
-                if "reason" in json_data.keys() and reason == "Invalid Token!":
-                    invalid_field = "zoom.refresh_token"
+                reason = json_data.get("reason", "")
+                if reason in ["Invalid Token!", "Invalid authorization code"]:
+                    invalid_field = "zoom.authorization_code"
+                    self.secrets_storage.set_refresh_token("")
+                elif reason == "Invalid request : Redirect URI mismatch.":
+                    invalid_field = "zoom.redirect_uri"
                 else:
                     invalid_field = "zoom.client_id or zoom.client_secret"
                 raise AccessTokenGenerationException(
