@@ -241,7 +241,7 @@ Let's consider an example of running incremental-sync as a cron job with flock:
 
 ## Troubleshooting
 
-To troubleshoot an issue, the first view your [logged errors and exceptions](#log-errors-and-exceptions).
+To troubleshoot an issue, first view your [logged errors and exceptions](#log-errors-and-exceptions).
 
 Use the following sections to help troubleshoot further:
 
