@@ -644,7 +644,7 @@ zoom.user_mapping: 'C:/Users/banon/connector/identity_mappings.csv'
 ```
 ### Zoom OAuth app compatibility
 
-- First, a user needs to configure one Zoom OAuth Account Level App on
+- Configure one Zoom OAuth Account Level App on
 [Zoom App Marketplace](https://marketplace.zoom.us/). 
 -  This will generate a [zoom.client_id](#zoomclient_id-required) and [zoom.client_secret](#zoomclient_secret-required).
 - Add the following scopes in the account-level app, to enable Zoom object fetching.
