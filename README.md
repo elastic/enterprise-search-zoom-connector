@@ -311,7 +311,7 @@ As a solution, the user has to run the Zoom Connector full-sync or incremental-s
 
 **Issues while deletion:**
 
-While deletion if the user deletes any chats or files which are older than 6 months or if the user deletes any meetings, recordings, or past_meeting instances which are older than a month from their zoom account then the user won’t be able to delete those data from enterprise search as those objects are archived, it won’t be possible to delete them.
+If the user deletes any chats or files which are older than 6 months, or if the user deletes any meetings, recordings, or `past_meeting` instances which are older than a month from their Zoom account, the user **will not** be able to delete those data from Enterprise Search.  These objects are archived.
 
 **Solution:**
 
