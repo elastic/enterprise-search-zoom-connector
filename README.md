@@ -626,7 +626,7 @@ The number of threads the connector will run in parallel when indexing documents
 enterprise_search_sync_thread_count: 5
 ```
 
-For the Linux distribution with at least 2 GB RAM and 4 vCPUs, you can increase the thread counts if the overall CPU and RAM are underutilized i.e. below 60-70%.
+For a Linux distribution with at least 2 GB RAM and 4 vCPUs, you can increase the thread counts if the overall CPU and RAM are underutilized i.e. below 60-70%.
 
 #### `enable_document_permission`
 
