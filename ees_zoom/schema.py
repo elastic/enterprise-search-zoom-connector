@@ -28,7 +28,12 @@ schema = {
         "type": "string",
         "empty": False,
     },
-    "zoom.refresh_token": {
+    "zoom.authorization_code": {
+        "required": True,
+        "type": "string",
+        "empty": False,
+    },
+    "zoom.redirect_uri": {
         "required": True,
         "type": "string",
         "empty": False,
