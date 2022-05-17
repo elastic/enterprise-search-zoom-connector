@@ -5,8 +5,10 @@
 zoom.client_id: dummy_client_id
 # Client Secret of Zoom Oauth App to fetch the access_token
 zoom.client_secret: dummy_client_secret
-# refresh_token of Zoom Oauth App to fetch the access_token
-zoom.refresh_token: abcd
+# Authorization code sent at callback time to fetch the access_token and refresh_token
+zoom.authorization_code: dummy-authorization-code
+# URI to handle successful user authorization.
+zoom.redirect_uri: https://dummy_redirect.com/callback
 
 #Workplace Search configuration settings
 #Access token for Workplace search authentication
