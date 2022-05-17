@@ -315,7 +315,7 @@ If the user deletes any chats or files which are older than 6 months, or if the 
 
 **Solution:**
 
-As a solution, the user has to run the Zoom Connector deletion-sync functionality at least once in a span of a month so that all the deleted data from the Zoom app will also be deleted from the enterprise search.
+To avoid this issue, the user should run the Zoom Connector `deletion-sync` functionality at least once every 30 days, so that all the deleted data from the Zoom app will also be deleted from Enterprise Search.
 
 ## Advanced usage
 
