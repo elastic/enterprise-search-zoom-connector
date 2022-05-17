@@ -4,7 +4,7 @@
 
 # Zoom connector package
 
-Use this _Elastic Enterprise Search Zoom connector package_ to deploy and run a Zoom connector on your own infrastructure. The connector extracts and syncs data from a [Zoom](https://support.zoom.us/hc/en-us) service. The data is indexed into an Enterprise Search content source within an Elastic deployment.
+Use this _Elastic Enterprise Search Zoom connector package_ to deploy and run a Zoom connector on your own infrastructure. The connector extracts and syncs data from  [Zoom](https://support.zoom.us/hc/en-us). The data is indexed into an Enterprise Search content source within an Elastic deployment.
 
 ⚠️ _This connector package is a **beta** feature._
 Beta features are subject to change and are not covered by the support SLA of generally available (GA) features. Elastic plans to promote this feature to GA in a future release.
