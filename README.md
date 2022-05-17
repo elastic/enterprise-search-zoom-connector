@@ -4,12 +4,10 @@
 
 # Zoom connector package
 
-Use this _Elastic Enterprise Search Zoom connector package_ to deploy and run a Zoom connector on your own infrastructure. The connector extracts and syncs data from  [Zoom](https://support.zoom.us/hc/en-us). The data is indexed into an Enterprise Search content source within an Elastic deployment.
+Use this _Elastic Enterprise Search Zoom connector package_ to deploy and run a Zoom connector on your own infrastructure. The connector extracts and syncs data from [Zoom](https://support.zoom.us/hc/en-us). The data is indexed into an Enterprise Search content source within an Elastic deployment.
 
 ⚠️ _This connector package is a **beta** feature._
 Beta features are subject to change and are not covered by the support SLA of generally available (GA) features. Elastic plans to promote this feature to GA in a future release.
-
-Note: This version of the Connector is not supported for Elastic Enterprise Search versions 8.0 and above
 
 ℹ️ _This connector package requires a compatible Elastic subscription level._
 Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
@@ -74,7 +72,8 @@ Then, collect the information that is required to connect to Zoom:
 
 - The [zoom.client_id](#zoomclient_id-required) will be used to log in to the Zoom Oauth app.
 - The [zoom.client_secret](#zoomclient_secret-required) will be used to log in to the Zoom Oauth app.
-- The [zoom.refresh_token](#zoomrefresh_token-required) will be used to generate the new access token to make API requests for fetching the data from Zoom.  
+- The [zoom.authorization_code](#zoomauthorization_code-required) will be used to fetch the refresh token and access token to make API requests for fetching the data from Zoom.
+- The [zoom.redirect_uri](#zoomredirect_uri-required) URI to handle successful user authorization. It must match with Development or Production Redirect URI in your OAuth app settings.
 
 Later, you will [configure the connector](#configure-the-connector) with these values.
 
@@ -133,6 +132,12 @@ make install_package
 ```
 
 This command runs as the current user and installs the connector and its dependencies.
+
+Note: By Default, the package installed supports Enterprise Search version 8.0 or above. In order to use the connector for older versions of Enterprise Search(less than version 8.0) use the ES_VERSION_V8 argument while running make install_package or make install_locally command:
+
+```shell
+make install_package ES_VERSION_V8=no
+```
 
 ℹ️ Within a Windows environment, first install `make`:
 
@@ -278,44 +283,39 @@ To allow Tika to extract content from images, you need to manually install Tesse
 
 The following sections provide solutions for issues related to syncing.
 
-#### Some objects are time range specific
+#### **Indexing issues:**
 
+* ***For all [meetings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods#tag/Meetings):***
 
-**Issues while indexing:**
+  - Users can only index meetings that are unexpired.
 
+  - MeetingId will expire in 30 days.
 
-***For all [meetings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods#tag/Meetings):***
+  - Thus, users can only index meetings that are less than a month old.
 
-Users can only index meetings that are unexpired.
+* ***For all [chat-messages](https://marketplace.zoom.us/docs/api-reference/chat/methods/#tag/Chat-Messages):***
 
-MeetingId will expire in 30 days.
+  - Users can only index chats and files that are less than 6 months old.
 
-Thus, users can only index meetings that are less than a month old.
+* ***For all [recordings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/recordingsList):***
 
-***For all [chat-messages](https://marketplace.zoom.us/docs/api-reference/chat/methods/#tag/Chat-Messages):***
+  - Users can only index recordings that are less than a month old.
 
-Users can only index chats and files that are less than 6 months old.
+* ***For all [past_meetings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods#operation/pastMeetings):***
 
-***For all [recordings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/recordingsList):***
+  - Users can only index past meetings instances that are less than a month old because the meeting id will expire after 1 month.
 
-Users can only index recordings that are less than a month old.
+#### **Solution:**
 
-***For all [past_meetings](https://marketplace.zoom.us/docs/api-reference/zoom-api/methods#operation/pastMeetings):***
+  - As a solution, the user has to run the Zoom Connector full-sync or incremental-sync functionality at least once in a span of a month so that all the data will be indexed properly without any data loss.   
 
-Users can only index past meetings instances that are less than a month old
-because the meeting id will expire after 1 month.
+#### **Deletion issues:**
 
-**Solution:**
+* If the user deletes any 'chats' or 'files' which are older than 6 months, or if the user deletes any `meetings`, `recordings`, or `past_meeting` instances which are older than a month from their Zoom account, the user **will not** be able to delete those data from Enterprise Search. These objects are archived.
 
-As a solution, the user has to run the Zoom Connector full-sync or incremental-sync functionality at least once in a span of a month so that all the data will be indexed properly without any data loss.   
+#### **Solution:**
 
-**Deletion issues:**
-
-If the user deletes any chats or files which are older than 6 months, or if the user deletes any meetings, recordings, or `past_meeting` instances which are older than a month from their Zoom account, the user **will not** be able to delete those data from Enterprise Search.  These objects are archived.
-
-**Solution:**
-
-To avoid this issue, the user should run the Zoom Connector `deletion-sync` functionality at least once every 30 days, so that all the deleted data from the Zoom app will also be deleted from Enterprise Search.
+  - To avoid this issue, the user should run the Zoom Connector `deletion-sync` functionality at least once every 30 days, so that all the deleted data from the Zoom app will also be deleted from Enterprise Search.
 
 ## Advanced usage
 
@@ -506,12 +506,19 @@ The client_secret of the Zoom OAuth App.
 zoom.client_secret: 'a122dsad123334asdaddad'
 ```
 
-#### `zoom.refresh_token` (required)
+#### `zoom.authorization_code` (required)
 
-The refresh_token of the Zoom OAuth App.
+The authorization code sent at callback time to fetch the access_token and refresh_token.
 
 ```yaml
-zoom.refresh_token: 'a122dsad123334a122dsad123334a122dsad123334a122dsad123334a122dsad123334a122dsad123334'
+zoom.authorization_code: 'ABCHm_byl3hOl3SZ-5j5jnC-mXyz'
+```
+#### `zoom.redirect_uri` (required)
+
+URI to handle successful user authorization. It must match with Development or Production Redirect URI in your OAuth app settings.
+
+```yaml
+zoom.redirect_uri: 'https://oauth.example.io/v1/callback'
 ```
 
 #### `enterprise_search.api_key` (required)
@@ -535,7 +542,7 @@ The [Enterprise Search base URL](https://www.elastic.co/guide/en/enterprise-sear
 ```yaml
 enterprise_search.host_url: https://my-deployment.ent.europe-west1.gcp.cloud.es.io
 ```
-
+Note: While using Elastic Enterprise Search version 8.0.0 and above, port must be specified in [`enterprise_search.host_url`](#enterprise_searchhost_url-required)
 #### `objects`
 
 Specifies which Zoom objects to sync to Enterprise Search, and for each object, which fields to include and exclude. When the include/exclude fields are empty, all fields are synced.
@@ -646,7 +653,7 @@ zoom.user_mapping: 'C:/Users/banon/connector/identity_mappings.csv'
 
 - Configure one Zoom OAuth Account Level App on
 [Zoom App Marketplace](https://marketplace.zoom.us/). 
--  This will generate a [zoom.client_id](#zoomclient_id-required) and [zoom.client_secret](#zoomclient_secret-required).
+- This will generate a [zoom.client_id](#zoomclient_id-required) and [zoom.client_secret](#zoomclient_secret-required).
 - Add the following scopes in the account-level app, to enable Zoom object fetching.
 
 ***Scopes to be added:***
@@ -660,13 +667,14 @@ group:read:admin
 chat_channel:read:admin
 report:read:admin
 ```
-- After adding all the scopes user needs to generate [zoom.refresh_token](#zoomrefresh_token-required) in postman OAuth 2.0 authorization using [zoom.client_id](#zoomclient_id-required) and [zoom.client_secret](#zoomclient_secret-required). 
-- Before generating the [zoom.refresh_token](#zoomrefresh_token-required) user needs to first add [callback-url](https://oauth.pstmn.io/v1/callback) from postman to Zoom Oauth App and after that user needs to also add [Auth-url](https://zoom.us/oauth/authorize) and [Access-Token-url](https://zoom.us/oauth/token) into postman OAuth 2.0 Configuration Options tab.
+- The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
+- After adding all the scopes and [zoom.redirect_uri](#zoomredirect_uri-required), user needs to generate [zoom.authorization_code](#zoomauthorization_code-required) using [zoom.client_id](#zoomclient_id-required) and [redirect_uri](#zoomredirect_uri-required) by making a GET call to [Generate-Authorization-Code](https://zoom.us/oauth/authorize). Refer:
+[Official Zoom OAuth2.0 Documentation](https://marketplace.zoom.us/docs/guides/auth/oauth/).
 ### Enterprise Search compatibility
 
 The Zoom connector package is compatible with Elastic deployments that meet the following criteria:
 
-- Elastic Enterprise Search version greater than or equal to 7.13.0 and less than 8.0.0.
+- Elastic Enterprise Search version greater than or equal to 7.13.0.
 - An Elastic subscription that supports this feature. Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
 
 ### Runtime dependencies
