@@ -309,7 +309,7 @@ because the meeting id will expire after 1 month.
 
 As a solution, the user has to run the Zoom Connector full-sync or incremental-sync functionality at least once in a span of a month so that all the data will be indexed properly without any data loss.   
 
-**Issues while deletion:**
+**Deletion issues:**
 
 If the user deletes any chats or files which are older than 6 months, or if the user deletes any meetings, recordings, or `past_meeting` instances which are older than a month from their Zoom account, the user **will not** be able to delete those data from Enterprise Search.  These objects are archived.
 
