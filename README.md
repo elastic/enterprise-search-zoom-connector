@@ -74,7 +74,7 @@ Then, collect the information that is required to connect to Zoom:
 
 - The [zoom.client_id](#zoomclient_id-required) will be used to log in to the Zoom Oauth app.
 - The [zoom.client_secret](#zoomclient_secret-required) will be used to log in to the Zoom Oauth app.
-- The [zoom.refresh_token](#zoomrefresh_token-required) will be used to generate the new access token to make API requests for fetching the data from zoom.  
+- The [zoom.refresh_token](#zoomrefresh_token-required) will be used to generate the new access token to make API requests for fetching the data from Zoom.  
 
 Later, you will [configure the connector](#configure-the-connector) with these values.
 
