@@ -17,6 +17,8 @@ try:
 except ImportError:
     from cached_property import cached_property
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from .configuration import Configuration
 from .enterprise_search_wrapper import EnterpriseSearchWrapper
 from .local_storage import LocalStorage
@@ -97,6 +99,50 @@ class BaseCommand:
     def zoom_client(self):
         """Get the Zoom client instance for the running command."""
         return ZoomClient(self.config, self.logger)
+
+    def create_jobs(self, thread_count, func, args, iterable_list):
+        """Apply async calls using multithreading to the targeted function
+        :param thread_count: Total number of threads to be spawned
+        :param func: The target function on which the async calls would be made
+        :param args: Arguments for the targeted function
+        :param iterable_list: list to iterate over and create thread
+        """
+        # If iterable_list is present, then iterate over the list and pass each list element
+        # as an argument to the async function, else iterate over number of threads configured
+        if iterable_list:
+            documents = []
+            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                future_to_path = {
+                    executor.submit(func, *args, list_element): list_element
+                    for list_element in iterable_list
+                }
+                for future in as_completed(future_to_path):
+                    path = future_to_path[future]
+                    try:
+                        documents.extend(future.result())
+                    except Exception as exception:
+                        self.logger.exception(
+                            f"Error while fetching in path {path}. Error {exception}"
+                        )
+            return documents
+        else:
+            generated_documents_ids = set()
+            indexed_documents_ids = set()
+            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                future_to_path = {
+                    executor.submit(func): list_element
+                    for list_element in range(thread_count)
+                }
+                for future in as_completed(future_to_path):
+                    path = future_to_path[future]
+                    try:
+                        generated_documents_ids.update(future.result()[0])
+                        indexed_documents_ids.update(future.result()[1])
+                    except Exception as exception:
+                        self.logger.exception(
+                            f"Error while fetching in path {path}. Error {exception}"
+                        )
+            return generated_documents_ids, indexed_documents_ids
 
     @cached_property
     def local_storage(self):
