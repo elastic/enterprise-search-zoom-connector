@@ -12,3 +12,5 @@ BATCH_SIZE = 100
 ROLES = "roles"
 GROUPS = "groups"
 USERS = "users"
+FILES = "files"
+CHATS = "chats"
