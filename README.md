@@ -583,9 +583,9 @@ A UTC timestamp the connector uses to determine which objects to extract and syn
 
 ```yaml
 start_time: 2011-10-12T00:00:00Z (default)
-
-Zoom App Creation Date-time: 2011-10-12T00:00:00Z
 ```
+
+Note: The default value of start_time would be the zoom app creation date-time: 2011-10-12T00:00:00Z.
 
 #### `end_time`
 
@@ -593,9 +593,9 @@ A UTC timestamp the connector uses to determine which objects to extract and syn
 
 ```yaml
 end_time: 2022-04-01T04:44:16Z
-
-end_time (default): current_date-time
 ```
+
+Note: The default value of end_time would be the current date-time in RFC-3339(%Y-%m-%dT%H:%M:%SZ) format.
 
 #### `log_level`
 
@@ -668,8 +668,9 @@ chat_channel:read:admin
 report:read:admin
 ```
 - The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
-- After adding all the scopes and [zoom.redirect_uri](#zoomredirect_uri-required), user needs to generate [zoom.authorization_code](#zoomauthorization_code-required) using [zoom.client_id](#zoomclient_id-required) and [redirect_uri](#zoomredirect_uri-required) by making a GET call to [Generate-Authorization-Code](https://zoom.us/oauth/authorize). Refer:
-[Official Zoom OAuth2.0 Documentation](https://marketplace.zoom.us/docs/guides/auth/oauth/).
+- After adding all the scopes and [zoom.redirect_uri](#zoomredirect_uri-required), user needs to generate [zoom.authorization_code](#zoomauthorization_code-required) using [zoom.client_id](#zoomclient_id-required) and [redirect_uri](#zoomredirect_uri-required) by making a GET call to [Generate-Authorization-Code](https://zoom.us/oauth/authorize).
+- Refer [Official Zoom OAuth2.0 Documentation](https://marketplace.zoom.us/docs/guides/auth/oauth/) for more details.
+
 ### Enterprise Search compatibility
 
 The Zoom connector package is compatible with Elastic deployments that meet the following criteria:
