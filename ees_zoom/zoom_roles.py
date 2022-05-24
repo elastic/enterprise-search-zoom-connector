@@ -178,7 +178,7 @@ class ZoomRoles:
         try:
             while next_page_token:
                 url = f"https://api.zoom.us/v2/roles/{role_id}/members?page_size=300"
-                if next_page_token and next_page_token is not True:
+                if next_page_token is not True:
                     url = f"{url}&next_page_token={next_page_token}"
                 headers = {
                     "authorization": f"Bearer {self.zoom_client.access_token}",
