@@ -65,13 +65,13 @@ class FullSyncCommand(BaseCommand):
             )
             local_storage = self.local_storage
             storage_with_collection = local_storage.get_storage_with_collection()
-
+            partitioned_users_lists = sync_zoom.get_all_users_from_zoom()
             global_keys_for_roles = sync_zoom.perform_sync(ROLES, [{}])
             global_keys = self.create_jobs(
                 thread_count,
                 sync_zoom.perform_sync,
                 (USERS,),
-                [{}],
+                partitioned_users_lists,
             )
             global_keys.extend(global_keys_for_roles)
             for object_type in self.config.get_value("objects"):
