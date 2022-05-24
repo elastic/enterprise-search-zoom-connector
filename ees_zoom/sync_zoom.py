@@ -8,11 +8,14 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import GROUPS, MEETINGS, PAST_MEETINGS, ROLES, USERS
+from .constant import (CHANNELS, GROUPS, MEETINGS, PAST_MEETINGS, RECORDINGS,
+                       ROLES, USERS)
 from .utils import split_list_into_buckets
+from .zoom_channels import ZoomChannels
 from .zoom_groups import ZoomGroups
 from .zoom_meetings import ZoomMeetings
 from .zoom_past_meetings import ZoomPastMeetings
+from .zoom_recordings import ZoomRecordings
 from .zoom_roles import ZoomRoles
 from .zoom_users import ZoomUsers
 
@@ -96,11 +99,11 @@ class SyncZoom:
         )
         users_schema = self.get_schema_fields(USERS)
         fetched_documents = users_object.get_users_details_documents(
-            users_schema,
-            partitioned_users_list,
-            self.objects_time_range[USERS][0],
-            self.objects_time_range[USERS][1],
-            self.enable_permission,
+            users_schema=users_schema,
+            users_data=partitioned_users_list,
+            start_time=self.objects_time_range[USERS][0],
+            end_time=self.objects_time_range[USERS][1],
+            enable_permission=self.enable_permission,
         )
         users_data = fetched_documents["data"]
         self.queue.append_to_queue(users_data)
@@ -124,12 +127,12 @@ class SyncZoom:
             checkpoint_object = PAST_MEETINGS
             meetings_schema = {}
         fetched_documents = meetings_object.get_meetings_details_documents(
-            partitioned_users_list,
-            meetings_schema,
-            self.objects_time_range[checkpoint_object][0],
-            self.objects_time_range[checkpoint_object][1],
-            is_meetings_in_objects,
-            self.enable_permission,
+            users_data=partitioned_users_list,
+            meetings_schema=meetings_schema,
+            start_time=self.objects_time_range[checkpoint_object][0],
+            end_time=self.objects_time_range[checkpoint_object][1],
+            is_meetings_in_objects=is_meetings_in_objects,
+            enable_permission=self.enable_permission,
         )
         meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(meetings_data)
@@ -150,11 +153,11 @@ class SyncZoom:
         past_meetings_schema = self.get_schema_fields(PAST_MEETINGS)
         fetched_documents = []
         fetched_documents = past_meetings_object.get_past_meetings_details_documents(
-            meetings_object.meetings_past_meetings_list,
-            past_meetings_schema,
-            self.objects_time_range[PAST_MEETINGS][0],
-            self.objects_time_range[PAST_MEETINGS][1],
-            self.enable_permission,
+            meetings_data=meetings_object.meetings_past_meetings_list,
+            past_meetings_schema=past_meetings_schema,
+            start_time=self.objects_time_range[PAST_MEETINGS][0],
+            end_time=self.objects_time_range[PAST_MEETINGS][1],
+            enable_permission=self.enable_permission,
         )
         past_meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(past_meetings_data)
@@ -166,7 +169,7 @@ class SyncZoom:
         :param roles_object: ZoomRoles Object.
         :returns: list of roles documents.
         """
-        roles_document_list = []
+        roles_documents_list = []
         roles_schema = self.get_schema_fields(ROLES)
         roles_object.set_list_of_roles_from_zoom()
         roles_list = split_list_into_buckets(
@@ -180,8 +183,8 @@ class SyncZoom:
             )
             roles_data = fetched_documents["data"]
             self.queue.append_to_queue(roles_data)
-            roles_document_list.extend(roles_data)
-        return roles_document_list
+            roles_documents_list.extend(roles_data)
+        return roles_documents_list
 
     def fetch_groups_and_append_to_queue(self, groups_object):
         """This method fetches the groups from Zoom server and
@@ -200,6 +203,54 @@ class SyncZoom:
         groups_data = fetched_documents["data"]
         self.queue.append_to_queue(groups_data)
         return groups_data
+
+    def fetch_channels_and_append_to_queue(self, partitioned_users_list):
+        """This method fetches the channels from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which channels will be fetched.
+        :returns: list of channels documents.
+        """
+        fetched_documents = []
+        channel_schema = self.get_schema_fields(CHANNELS)
+        channels_object = ZoomChannels(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = channels_object.get_channels_details_documents(
+            partitioned_users_list,
+            channel_schema,
+            self.enable_permission,
+        )
+        channels_data = fetched_documents["data"]
+        self.queue.append_to_queue(channels_data)
+        return channels_data
+
+    def fetch_recordings_and_append_to_queue(self, partitioned_users_list):
+        """This method fetches the recordings from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which recordings will be fetched.
+        :returns: list of recordings documents.
+        """
+        fetched_documents = []
+        recordings_schema = self.get_schema_fields(RECORDINGS)
+        recordings_object = ZoomRecordings(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = recordings_object.get_recordings_details_documents(
+            users_data=partitioned_users_list,
+            recordings_schema=recordings_schema,
+            start_time=self.objects_time_range[RECORDINGS][0],
+            end_time=self.objects_time_range[RECORDINGS][1],
+            enable_permission=self.enable_permission,
+        )
+        recording_data = fetched_documents["data"]
+        self.queue.append_to_queue(recording_data)
+        return recording_data
 
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
@@ -277,6 +328,16 @@ class SyncZoom:
                     )
                     documents_to_index.extend(
                         self.fetch_past_meetings_and_append_to_queue(meetings_object)
+                    )
+                if CHANNELS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_channels_and_append_to_queue(partitioned_users_list)
+                    )
+                if RECORDINGS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_recordings_and_append_to_queue(
+                            partitioned_users_list
+                        )
                     )
         except Exception as exception:
             self.logger.error(
