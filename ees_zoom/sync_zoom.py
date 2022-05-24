@@ -24,7 +24,6 @@ class SyncZoom:
         self,
         config,
         logger,
-        workplace_search_client,
         zoom_client,
         objects_time_range,
         queue,
@@ -32,16 +31,13 @@ class SyncZoom:
     ):
         self.config = config
         self.logger = logger
-        self.workplace_search_client = workplace_search_client
         self.zoom_client = zoom_client
         self.objects_time_range = objects_time_range
         self.queue = queue
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
-        self.ws_source = config.get_value("enterprise_search.source_id")
         self.configuration_objects = config.get_value("objects")
         self.enable_permission = config.get_value("enable_document_permission")
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
-        self.mapping_sheet_path = config.get_value("zoom.user_mapping")
 
     def get_schema_fields(self, document_name):
         """Returns the schema of all the include_fields or exclude_fields specified in the configuration file.

@@ -90,31 +90,6 @@ class BaseCommand:
         return mappings
 
     @cached_property
-    def zoom_enterprise_search_mappings(self):
-        """This function will create and return mapping dictionary containing Zoom -> Enterprise search
-        user_id mappings"""
-        enable_document_permission = self.config.get_value("enable_document_permission")
-        user_mapping = self.config.get_value("zoom.user_mapping")
-        mappings = {}
-        if enable_document_permission and user_mapping and os.path.exists(user_mapping) and os.path.getsize(user_mapping) > 0:
-            with open(user_mapping, encoding="utf-8") as mapping_file:
-                try:
-                    csvreader = csv.reader(mapping_file)
-                    for row in csvreader:
-                        zoom_user_name = row[0]
-                        enterprise_search_user = row[1]
-                        if mappings.get(zoom_user_name):
-                            mappings[zoom_user_name].append(enterprise_search_user)
-                        else:
-                            mappings[zoom_user_name] = [enterprise_search_user]
-                except csv.Error as csv_exception:
-                    self.logger.exception(
-                        f"Error while reading user mapping file at the location: \
-                        {user_mapping}. Error: {csv_exception}"
-                    )
-        return mappings
-
-    @cached_property
     def config(self):
         """Get the configuration for the connector for the running command."""
         file_name = self.args.config_file

@@ -57,7 +57,6 @@ class FullSyncCommand(BaseCommand):
             sync_zoom = SyncZoom(
                 self.config,
                 self.logger,
-                self.workplace_search_client,
                 self.zoom_client,
                 objects_time_range,
                 queue,
@@ -109,7 +108,7 @@ class FullSyncCommand(BaseCommand):
         checkpoint = Checkpoint(self.config, self.logger)
         thread_count = self.config.get_value("enterprise_search_sync_thread_count")
         sync_es = SyncEnterpriseSearch(
-            self.config, self.logger, self.workplace_search_client, queue
+            self.config, self.logger, self.workplace_search_custom_client, queue
         )
 
         total_documents_generated, total_documents_indexed = self.create_jobs(
