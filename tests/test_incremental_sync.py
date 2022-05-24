@@ -29,8 +29,12 @@ def settings():
 
 
 @patch.object(SyncZoom, "perform_sync")
-def test_start_producer(mock1):
-    """Test method of start producer to fetching data from outlook for incremental sync"""
+@patch.object(SyncZoom, "get_all_users_from_zoom")
+def test_start_producer(mock1, mock2):
+    """Test method of start producer to fetching data from outlook for incremental sync
+    :param mock1: patch for get_all_users_from_zoom
+    :param mock2: patch for perform_sync
+    """
     config, logger = settings()
     args = get_args("IncrementalSyncCommand")
     incremental_sync = IncrementalSyncCommand(args)
@@ -42,14 +46,15 @@ def test_start_producer(mock1):
     mock1.return_value = [MagicMock()]
     incremental_sync.create_jobs = Mock()
     incremental_sync.create_jobs.return_value = MagicMock()
+    mock2.return_value = MagicMock()
     incremental_sync.zoom_client.get_token = Mock()
     incremental_sync.start_producer(queue, time_range)
     time_independent_objects = ["roles", "groups"]
-    time_dependent_objects_count = 0
-    time_dependent_objects_count = sum(
+    object_types_count = 0
+    object_types_count = sum(
         object not in time_independent_objects for object in config.get_value("objects")
     )
-    total_expected_size = time_dependent_objects_count + config.get_value(
+    total_expected_size = object_types_count + config.get_value(
         "enterprise_search_sync_thread_count"
     )
     assert queue.qsize() == total_expected_size
