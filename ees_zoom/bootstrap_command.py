@@ -47,6 +47,6 @@ class BootstrapCommand(BaseCommand):
             ],
             "color": "#000000",
         }
-        self.workplace_search_custom_client.create_content_source(
+        self.workplace_search_client.create_content_source(
             schema, display, name=self.args.name, is_searchable=True
         )

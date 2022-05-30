@@ -67,4 +67,4 @@ enterprise_search_sync_thread_count: 5
 # Denotes whether document permission will be enabled or not
 enable_document_permission: Yes
 #The path of csv file containing mapping of the source user name to Workplace user name
-zoom.user_mapping: ./tests/config/zoom.user_mapping.csv
+zoom.user_mapping: ''

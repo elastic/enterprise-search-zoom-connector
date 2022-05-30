@@ -11,8 +11,6 @@ import sys
 from unittest.mock import Mock
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-
 from ees_zoom.bootstrap_command import BootstrapCommand  # noqa
 from ees_zoom.configuration import Configuration  # noqa
 from elastic_enterprise_search import WorkplaceSearch  # noqa
@@ -41,7 +39,7 @@ def test_execute(caplog):
     caplog.set_level("INFO")
     mock_response = {"id": "1234"}
     bootstrap_object = BootstrapCommand(args)
-    bootstrap_object.workplace_search_custom_client.workplace_search_client.create_content_source = Mock(
+    bootstrap_object.workplace_search_client.workplace_search_client.create_content_source = Mock(
         return_value=mock_response
     )
     bootstrap_object.execute()

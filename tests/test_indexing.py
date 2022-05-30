@@ -35,17 +35,17 @@ def settings():
     return configuration, logger
 
 
-def create_enterprise_search_object():
+def create_enterprise_search_obj():
     """This function create Enterprise Search object for test."""
     configs, logger = settings()
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
-    workplace_search_custom_client = WorkplaceSearch(
+    workplace_search_client = WorkplaceSearch(
         enterprise_search_host,
         bearer_auth=configs.get_value("enterprise_search.api_key"),
     )
     queue = ConnectorQueue(logger)
     queue.end_signal()
-    return SyncEnterpriseSearch(configs, logger, workplace_search_custom_client, queue)
+    return SyncEnterpriseSearch(configs, logger, workplace_search_client, queue)
 
 
 @pytest.mark.parametrize(
@@ -81,8 +81,8 @@ def test_index_document(documents, mock_response, caplog):
     :param caplog: records the attributes from current stage.
     """
     caplog.set_level("INFO")
-    indexer_object = create_enterprise_search_object()
-    indexer_object.workplace_search_custom_client.index_documents = Mock(
+    indexer_object = create_enterprise_search_obj()
+    indexer_object.workplace_search_client.index_documents = Mock(
         return_value=mock_response
     )
     indexer_object.index_documents(documents)
@@ -121,8 +121,8 @@ def test_index_document_when_error_occurs(
     :param caplog: Pytest logging object.
     """
     caplog.set_level(log_level)
-    indexer_object = create_enterprise_search_object()
-    indexer_object.workplace_search_custom_client.index_documents = Mock(
+    indexer_object = create_enterprise_search_obj()
+    indexer_object.workplace_search_client.index_documents = Mock(
         return_value=mock_response
     )
     indexer_object.index_documents(documents)
@@ -134,7 +134,7 @@ def test_index_document_when_error_occurs(
 def test_perform_sync_enterprise_search():
     """Test that perform_sync of sync_enterprise_search pull documents from the queue and index it to the \
          Enterprise Search."""
-    indexer_object = create_enterprise_search_object()
+    indexer_object = create_enterprise_search_obj()
     indexer_object.index_documents = Mock(return_value=True)
     indexer_object.perform_sync()
     assert indexer_object.queue.empty()

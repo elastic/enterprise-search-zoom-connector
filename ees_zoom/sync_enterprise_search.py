@@ -19,10 +19,10 @@ CONNECTION_TIMEOUT = 100000
 class SyncEnterpriseSearch:
     """This class contains common logic for indexing to workplace search"""
 
-    def __init__(self, config, logger, workplace_search_custom_client, queue):
+    def __init__(self, config, logger, workplace_search_client, queue):
         self.config = config
         self.logger = logger
-        self.workplace_search_custom_client = workplace_search_custom_client
+        self.workplace_search_client = workplace_search_client
         self.queue = queue
         self.ws_source = config.get_value("enterprise_search.source_id")
         self.enterprise_search_sync_thread_count = config.get_value(
@@ -42,7 +42,7 @@ class SyncEnterpriseSearch:
         self.total_documents_found += len(documents)
         if documents:
             documents_indexed = 0
-            responses = self.workplace_search_custom_client.index_documents(
+            responses = self.workplace_search_client.index_documents(
                 documents,
                 CONNECTION_TIMEOUT,
             )

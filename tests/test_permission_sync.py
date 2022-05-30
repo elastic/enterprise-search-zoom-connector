@@ -7,17 +7,13 @@ import argparse
 import logging
 import os
 import sys
-import unittest.mock
-from unittest.mock import MagicMock, Mock, patch
-
-from support import get_args
+from unittest.mock import Mock
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 from ees_zoom.configuration import Configuration  # noqa
 from ees_zoom.permission_sync_command import PermissionSyncCommand  # noqa
-from ees_zoom.zoom_roles import ZoomRoles
 
 CONFIG_FILE = os.path.join(
     os.path.join(os.path.dirname(__file__), "config"),
@@ -42,10 +38,10 @@ def test_remove_all_permissions():
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
     mocked_respose = {"results": [{"user": "user1", "permissions": "permission1"}]}
-    permission_object.workplace_search_custom_client.list_permissions = Mock(
+    permission_object.workplace_search_client.list_permissions = Mock(
         return_value=mocked_respose
     )
-    permission_object.workplace_search_custom_client.remove_user_permissions = Mock(
+    permission_object.workplace_search_client.remove_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
@@ -58,57 +54,9 @@ def test_workplace_add_permission():
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
-    permission_object.workplace_search_custom_client.add_user_permissions = Mock(
+    permission_object.workplace_search_client.add_user_permissions = Mock(
         return_value=True
     )
     mock = Mock()
     mock.permission_object.workplace_add_permission("user1", "permission1")
     mock.permission_object.workplace_add_permission.assert_called()
-
-
-@patch.object(ZoomRoles, "set_list_of_roles_from_zoom")
-@patch.object(ZoomRoles, "fetch_role_permissions")
-@patch.object(ZoomRoles, "fetch_members_of_role")
-def test_set_permissions_list(
-    mock_members_of_role, mock_role_permission, mock_list_of_role
-):
-    """Tests the set_permission_list function for permission sync.
-    :param mock_members_of_role: patch object for fetch_members_of_role
-    :param mock_role_permission: patch object for fetch_role_permissions
-    :param mock_list_of_role: patch object for set_list_of_roles_from_zoom
-    """
-    config, logger = settings()
-    args = get_args("PermissionSyncCommand")
-    permission_sync = PermissionSyncCommand(args)
-    permission_sync.zoom_client.get_token = Mock()
-    roles_object = ZoomRoles(
-        config,
-        logger,
-        permission_sync.zoom_client,
-        permission_sync.zoom_enterprise_search_mappings,
-    )
-    mock_list_of_role.return_value = True
-
-    with unittest.mock.patch.object(roles_object, "roles_list", MagicMock()):
-        dummy_permissions = ["permission1", "permission2"]
-        dummy_user_ids = ["zoom_user_id", "zoom_user_id_2"]
-        mock_role_permission.return_value = dummy_permissions
-        mock_members_of_role.return_value = dummy_user_ids
-        permission_sync.workplace_search_custom_client.add_user_permissions = Mock(
-            return_value=True
-        )
-        permission_sync.set_permissions_list(
-            permission_sync.zoom_enterprise_search_mappings
-        )
-
-        permission_sync.workplace_search_custom_client.add_user_permissions = Mock(
-            return_value=True
-        )
-        mock = Mock()
-        mock.permission_sync.workplace_add_permission(
-            dummy_user_ids[0],
-            dummy_permissions.append(
-                permission_sync.zoom_enterprise_search_mappings.get(dummy_user_ids[0])
-            ),
-        )
-        mock.permission_sync.workplace_add_permission.assert_called()

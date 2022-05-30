@@ -60,7 +60,7 @@ class BaseCommand:
         return logger
 
     @cached_property
-    def workplace_search_custom_client(self):
+    def workplace_search_client(self):
         """Get the workplace search custom client instance for the running command."""
         return EnterpriseSearchWrapper(self.logger, self.config, self.args)
 
