@@ -10,6 +10,7 @@ import threading
 
 from iteration_utilities import unique_everseen
 
+
 from .constant import BATCH_SIZE
 from .utils import split_documents_into_equal_chunks
 

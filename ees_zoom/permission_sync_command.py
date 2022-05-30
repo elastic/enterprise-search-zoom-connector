@@ -4,6 +4,7 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 """This module allows to run a permission sync against the source instance.
+
     It will attempt to remove from Enterprise Search instance the documents
     that have been deleted from the third-party system.
 """
@@ -15,6 +16,7 @@ from .base_command import BaseCommand
 
 class PermissionSyncDisabledException(Exception):
     """Exception raised when permission sync is disabled, but expected to be enabled.
+
     Attributes:
         message -- explanation of the error
     """
@@ -26,6 +28,7 @@ class PermissionSyncDisabledException(Exception):
 class EmptyMappingException(Exception):
     """Exception raised when mapping file is not present or empty and the sync_user_permissions
         is executed.
+
     Attributes:
         message -- explanation of the error
     """
@@ -36,6 +39,7 @@ class EmptyMappingException(Exception):
 
 class PermissionSyncCommand(BaseCommand):
     """This class contains logic to sync user permissions from the source.
+
     It can be used to run the job that will periodically sync permissions
     from the source to Elastic Enterprise Search."""
 
@@ -79,6 +83,7 @@ class PermissionSyncCommand(BaseCommand):
 
     def execute(self):
         """Runs the permission indexing logic.
+
         This method when invoked, checks the permission of the source users and update those user
         permissions in the Workplace Search.
         """
