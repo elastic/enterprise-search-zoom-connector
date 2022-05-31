@@ -1,8 +1,3 @@
-#
-# Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
-# or more contributor license agreements. Licensed under the Elastic License 2.0;
-# you may not use this file except in compliance with the Elastic License 2.0.
-#
 import logging
 import os
 import sys
@@ -41,7 +36,7 @@ def create_enterprise_search_obj():
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
     workplace_search_client = WorkplaceSearch(
         enterprise_search_host,
-        bearer_auth=configs.get_value("enterprise_search.api_key"),
+        http_auth=configs.get_value("enterprise_search.api_key"),
     )
     queue = ConnectorQueue(logger)
     queue.end_signal()
