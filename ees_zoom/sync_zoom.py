@@ -8,9 +8,10 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import GROUPS, MEETINGS, PAST_MEETINGS, ROLES, USERS
+from .constant import GROUPS, MEETINGS, PAST_MEETINGS, ROLES, USERS, CHATS
 from .utils import split_list_into_buckets
 from .zoom_groups import ZoomGroups
+from .zoom_chat_messages import ZoomChatMessages
 from .zoom_meetings import ZoomMeetings
 from .zoom_past_meetings import ZoomPastMeetings
 from .zoom_roles import ZoomRoles
@@ -205,6 +206,28 @@ class SyncZoom:
         self.queue.append_to_queue(groups_data)
         return groups_data
 
+    def fetch_chats_and_append_to_queue(
+        self, chat_access_enabled_users, chats_files_object
+    ):
+        """This method fetches the chats from Zoom server and
+        appends them to the shared queue
+        :param chat_access_enabled_users: list of user-ids which have chats-file:write permission.
+        :param chats_files_object: ZoomChatMessages Object
+        :returns: list of chats documents.
+        """
+        fetched_documents = []
+        chats_schema = self.get_schema_fields(CHATS)
+        fetched_documents = chats_files_object.get_chats_details_documents(
+            users_data=chat_access_enabled_users,
+            chats_schema=chats_schema,
+            start_time=self.objects_time_range[CHATS][0],
+            end_time=self.objects_time_range[CHATS][1],
+            enable_permission=self.enable_permission,
+        )
+        chats_data = fetched_documents["data"]
+        self.queue.append_to_queue(chats_data)
+        return chats_data
+
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
         shared queue and it returns list of locally stored details of documents fetched.
@@ -227,6 +250,7 @@ class SyncZoom:
                     self.zoom_client,
                     self.zoom_enterprise_search_mappings,
                 )
+                self.all_chat_access = roles_object.collect_chats_enabled_users_list()
                 if ROLES in self.configuration_objects:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {ROLES}."
@@ -281,6 +305,27 @@ class SyncZoom:
                     )
                     documents_to_index.extend(
                         self.fetch_past_meetings_and_append_to_queue(meetings_object)
+                    )
+                if CHATS in self.configuration_objects:
+                    user_ids_list = []
+                    for user in partitioned_users_list:
+                        user_ids_list.append(user["id"])
+                    chat_access_enabled_users = [
+                        user_id
+                        for user_id in self.all_chat_access
+                        if user_id in user_ids_list
+                    ]
+                    chats_files_object = ZoomChatMessages(
+                        self.config,
+                        self.logger,
+                        self.zoom_client,
+                        self.zoom_enterprise_search_mappings,
+                    )
+                    documents_to_index.extend(
+                        self.fetch_chats_and_append_to_queue(
+                            chat_access_enabled_users,
+                            chats_files_object,
+                        )
                     )
         except Exception as exception:
             self.logger.error(
