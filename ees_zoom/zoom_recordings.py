@@ -14,7 +14,6 @@ import requests
 
 from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT
 from .utils import retry, url_encode
-from .zoom_client import ZoomClient
 
 RECORDINGS = "recordings"
 
@@ -37,7 +36,6 @@ class ZoomRecordings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_recordings_from_user_id(
         self,
         user_id,

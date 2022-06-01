@@ -39,9 +39,11 @@ class SyncZoom:
         self.objects_time_range = objects_time_range
         self.queue = queue
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
+        self.ws_source = config.get_value("enterprise_search.source_id")
         self.configuration_objects = config.get_value("objects")
         self.enable_permission = config.get_value("enable_document_permission")
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
+        self.mapping_sheet_path = config.get_value("zoom.user_mapping")
 
     def get_schema_fields(self, document_name):
         """Returns the schema of all the include_fields or exclude_fields specified in the configuration file.
@@ -100,11 +102,11 @@ class SyncZoom:
         )
         users_schema = self.get_schema_fields(USERS)
         fetched_documents = users_object.get_users_details_documents(
-            users_schema=users_schema,
-            users_data=partitioned_users_list,
-            start_time=self.objects_time_range[USERS][0],
-            end_time=self.objects_time_range[USERS][1],
-            enable_permission=self.enable_permission,
+            users_schema,
+            partitioned_users_list,
+            self.objects_time_range[USERS][0],
+            self.objects_time_range[USERS][1],
+            self.enable_permission,
         )
         users_data = fetched_documents["data"]
         self.queue.append_to_queue(users_data)
@@ -128,12 +130,12 @@ class SyncZoom:
             checkpoint_object = PAST_MEETINGS
             meetings_schema = {}
         fetched_documents = meetings_object.get_meetings_details_documents(
-            users_data=partitioned_users_list,
-            meetings_schema=meetings_schema,
-            start_time=self.objects_time_range[checkpoint_object][0],
-            end_time=self.objects_time_range[checkpoint_object][1],
-            is_meetings_in_objects=is_meetings_in_objects,
-            enable_permission=self.enable_permission,
+            partitioned_users_list,
+            meetings_schema,
+            self.objects_time_range[checkpoint_object][0],
+            self.objects_time_range[checkpoint_object][1],
+            is_meetings_in_objects,
+            self.enable_permission,
         )
         meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(meetings_data)
@@ -154,11 +156,11 @@ class SyncZoom:
         past_meetings_schema = self.get_schema_fields(PAST_MEETINGS)
         fetched_documents = []
         fetched_documents = past_meetings_object.get_past_meetings_details_documents(
-            meetings_data=meetings_object.meetings_past_meetings_list,
-            past_meetings_schema=past_meetings_schema,
-            start_time=self.objects_time_range[PAST_MEETINGS][0],
-            end_time=self.objects_time_range[PAST_MEETINGS][1],
-            enable_permission=self.enable_permission,
+            meetings_object.meetings_past_meetings_list,
+            past_meetings_schema,
+            self.objects_time_range[PAST_MEETINGS][0],
+            self.objects_time_range[PAST_MEETINGS][1],
+            self.enable_permission,
         )
         past_meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(past_meetings_data)
@@ -170,7 +172,7 @@ class SyncZoom:
         :param roles_object: ZoomRoles Object.
         :returns: list of roles documents.
         """
-        roles_documents_list = []
+        roles_document_list = []
         roles_schema = self.get_schema_fields(ROLES)
         roles_object.set_list_of_roles_from_zoom()
         roles_list = split_list_into_buckets(
@@ -184,8 +186,8 @@ class SyncZoom:
             )
             roles_data = fetched_documents["data"]
             self.queue.append_to_queue(roles_data)
-            roles_documents_list.extend(roles_data)
-        return roles_documents_list
+            roles_document_list.extend(roles_data)
+        return roles_document_list
 
     def fetch_groups_and_append_to_queue(self, groups_object):
         """This method fetches the groups from Zoom server and
