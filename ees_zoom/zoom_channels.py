@@ -14,7 +14,6 @@ import requests
 
 from .constant import CHANNELS
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomChannels:
@@ -33,7 +32,6 @@ class ZoomChannels:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_channels_from_user_id(self, user_id):
         """This function is used to fetch channels from Zoom based on user id.
         :param user_id: String of Zoom user id.
