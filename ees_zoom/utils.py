@@ -113,3 +113,12 @@ def split_documents_into_equal_chunks(documents, chunk_size):
 def get_current_time():
     """Returns current time in rfc 3339 format"""
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
+
+
+def is_within_time_range(document, time_range):
+    """Check if document is created within time range or not.
+    :param document: dictionary of document from doc_id.json delete_keys.
+    :param time_range: datetime object limit for given document type(ex: one_month_time or six_months_time).
+    :returns: boolean to check if document is created within time range or not.
+    """
+    return datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < time_range
