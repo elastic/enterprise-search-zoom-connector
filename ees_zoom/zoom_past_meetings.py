@@ -62,6 +62,7 @@ class ZoomPastMeetings:
             ]:
                 return None
             elif past_meeting_response.status_code == 401:
+                self.zoom_client.get_token()
                 return self.get_past_meeting_details_from_meeting_id(
                     meeting_id, start_time, end_time
                 )

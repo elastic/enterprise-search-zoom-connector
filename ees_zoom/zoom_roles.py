@@ -57,6 +57,7 @@ class ZoomRoles:
                 response = json.loads(roles_response.text)
                 self.roles_list.extend(response[ROLES])
             elif roles_response.status_code == 401:
+                self.zoom_client.get_token()
                 self.set_list_of_roles_from_zoom()
             else:
                 roles_response.raise_for_status()
@@ -137,6 +138,7 @@ class ZoomRoles:
                 response = json.loads(roles_response.text)
                 privileges_of_role.extend(response["privileges"])
             elif roles_response.status_code == 401:
+                self.zoom_client.get_token()
                 return self.fetch_role_permissions(role_id)
             else:
                 roles_response.raise_for_status()

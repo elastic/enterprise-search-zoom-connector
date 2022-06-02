@@ -47,6 +47,7 @@ class ZoomGroups:
                 response = json.loads(groups_response.text)
                 self.groups_list.extend(response[GROUPS])
             elif groups_response.status_code == 401:
+                self.zoom_client.get_token()
                 self.set_groups_list()
             else:
                 groups_response.raise_for_status()
