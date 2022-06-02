@@ -151,6 +151,8 @@ Next, ensure the `ees_zoom` executable is on your `PATH`. For example, on macOS:
 export PATH=/Users/shaybanon/Library/Python/3.8/bin:$PATH
 ```
 
+Note: If you are running the connector on Windows, please ensure Microsoft Visual C++ 14.0 or greater is installed.
+
 The following table provides the installation location for each operating system:
 
 | Operating system | Installation location                                        |
@@ -664,7 +666,7 @@ chat_channel:read:admin
 role:read:admin
 recording:read:admin
 group:read:admin
-chat_channel:read:admin
+chat_messages:read:admin
 report:read:admin
 ```
 - The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
