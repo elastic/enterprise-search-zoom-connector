@@ -70,8 +70,8 @@ class ZoomClient:
         )
     )
     def get_token(self):
-        """This module generates access token and refresh token using stored refresh token.
-        If refresh token is not stored then uses authorization code."""
+        """This module generates access token and refresh token using stored refresh token.If refresh token is not stored then uses
+        authorization code."""
         lock.acquire()
         if time.time() < self.access_token_expiration:
             lock.release()
