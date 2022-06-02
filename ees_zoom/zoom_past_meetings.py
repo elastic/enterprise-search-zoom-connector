@@ -15,7 +15,6 @@ import requests
 
 from .constant import PAST_MEETINGS, RFC_3339_DATETIME_FORMAT
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomPastMeetings:
@@ -34,7 +33,6 @@ class ZoomPastMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_past_meeting_details_from_meeting_id(
         self, meeting_id, start_time, end_time
     ):
@@ -97,7 +95,6 @@ class ZoomPastMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_meeting_participants(self, past_meeting_id):
         """Method will get all the participants who attended the meeting.
         :param past_meeting_id: Meeting id for which participants are fetched.

@@ -15,7 +15,6 @@ import requests
 
 from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomMeetings:
@@ -37,7 +36,6 @@ class ZoomMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def set_meetings_from_user_id(self, user_id, start_time, end_time):
         """Method will get all the Scheduled, upcoming, and live meetings for the
         passed user id and will return those meetings which falls in between start_time

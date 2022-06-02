@@ -44,6 +44,7 @@ class ZoomClient:
         self.secrets_storage = SecretsStorage(config, logger)
         self.logger = logger
         self.config_file_path = config.file_name
+        self.access_token_expiration = time.time()
 
     def get_headers(self):
         """generates header to fetch refresh token from zoom.
@@ -69,8 +70,12 @@ class ZoomClient:
         )
     )
     def get_token(self):
-        """This module generates access token and refresh token using stored refresh token. If refresh token is not stored then uses
-        authorization code."""
+        """This module generates access token and refresh token using stored refresh token.
+        If refresh token is not stored then uses authorization code."""
+        lock.acquire()
+        if time.time() < self.access_token_expiration:
+            lock.release()
+            return
         self.logger.info(
             f"Generating the access token and updating refresh token for the client ID: {self.client_id}..."
         )
@@ -119,24 +124,5 @@ class ZoomClient:
             raise exception
         except Exception as exception:
             raise AccessTokenGenerationException(exception)
-
-    def regenerate_token():
-        """Decorator for regenerating access_token after its expiraion time.
-        calls the wrapped method to get new access_token from Zoom.
-        """
-
-        def decorator(func):
-            """This function used as a decorator."""
-            # the function that is used to check
-            # the access token and refresh if necessary
-            def wrapper(self, *args, **kwargs):
-                """This function execute the refresh token logic if access token is expired."""
-                lock.acquire()
-                if time.time() > self.zoom_client.access_token_expiration:
-                    self.zoom_client.get_token()
-                lock.release()
-                return func(self, *args, **kwargs)
-
-            return wrapper
-
-        return decorator
+        finally:
+            lock.release()

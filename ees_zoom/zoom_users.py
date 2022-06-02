@@ -15,7 +15,6 @@ import requests
 
 from .constant import RFC_3339_DATETIME_FORMAT, USERS
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomUsers:
@@ -38,7 +37,6 @@ class ZoomUsers:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_users_list(self):
         """The method will fetch all the available users from Zoom
         :returns users_list: list of total users fetched from Zoom

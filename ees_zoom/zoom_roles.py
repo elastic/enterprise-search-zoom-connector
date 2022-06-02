@@ -16,7 +16,6 @@ import requests
 
 from .constant import ROLES
 from .utils import retry
-from .zoom_client import ZoomClient
 
 CHAT_MESSAGE_READ_PERMISSION = "ChatMessage:Read"
 
@@ -42,7 +41,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def set_list_of_roles_from_zoom(self):
         """This function will fetch all the available roles from Zoom
         and will partition them in equal groups based on zoom_sync_thread_count
@@ -122,7 +120,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def fetch_role_permissions(self, role_id):
         """This function will fetch all the permissions using role id.
         :param role_id: string of the role ID.
@@ -167,7 +164,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def fetch_members_of_role(self, role_id):
         """Function fetches members which have role_id assigned to them.
         :param role_id: string of the role ID for which It has to fetch members.
