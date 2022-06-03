@@ -17,6 +17,9 @@ from .secrets_storage import SecretsStorage
 from .utils import retry
 
 ZOOM_AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
+REFRESH_TOKEN_FIELD = "zoom.refresh_token"
+ACCESS_TOKEN_FIELD = "zoom.access_token"
+EXPIRATION_TIME_FIELD = "zoom.access_token_expiry_time"
 
 
 class AccessTokenGenerationException(Exception):
@@ -44,6 +47,8 @@ class ZoomClient:
         self.secrets_storage = SecretsStorage(config, logger)
         self.logger = logger
         self.config_file_path = config.file_name
+        self.access_token_expiration = time.time()
+        self.is_token_generated = False
 
     def get_headers(self):
         """generates header to fetch refresh token from zoom.
@@ -69,16 +74,29 @@ class ZoomClient:
         )
     )
     def get_token(self):
-        """This module generates access token and refresh token using stored refresh token. If refresh token is not stored then uses
-        authorization code."""
+        """This module generates access token and refresh token using stored refresh token.
+        If refresh token is not stored then uses authorization code."""
+        lock.acquire()
+        secrets = self.secrets_storage.get_secrets()
+        refresh_token = ""
+        if secrets:
+            self.access_token_expiration = secrets.get(EXPIRATION_TIME_FIELD, "")
+            refresh_token = secrets.get(REFRESH_TOKEN_FIELD, "")
+        if self.access_token_expiration and time.time() < self.access_token_expiration:
+            self.is_token_generated = False
+            self.access_token = secrets.get(ACCESS_TOKEN_FIELD, "")
+            lock.release()
+            return
         self.logger.info(
             f"Generating the access token and updating refresh token for the client ID: {self.client_id}..."
         )
-        refresh_token = self.secrets_storage.get_refresh_token()
         if refresh_token and len(refresh_token):
             url = f"{ZOOM_AUTH_BASE_URL}refresh_token&refresh_token={refresh_token}"
         else:
-            url = f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}&redirect_uri={self.redirect_uri}"
+            url = (
+                f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}"
+                f"&redirect_uri={self.redirect_uri}"
+            )
         invalid_field = ""
         try:
             response = requests.post(
@@ -91,23 +109,39 @@ class ZoomClient:
                 refresh_token = json_data["refresh_token"]
                 self.access_token = json_data["access_token"]
                 self.access_token_expiration = time.time() + 3500
-                self.secrets_storage.set_refresh_token(refresh_token)
+                secrets = {
+                    REFRESH_TOKEN_FIELD: refresh_token,
+                    ACCESS_TOKEN_FIELD: self.access_token,
+                    EXPIRATION_TIME_FIELD: self.access_token_expiration,
+                }
+                self.secrets_storage.set_secrets(secrets)
         except requests.exceptions.HTTPError as http_error:
             if response.status_code in [400, 401]:
                 reason = json_data.get("reason", "")
                 if reason in ["Invalid Token!", "Invalid authorization code"]:
+                    if not self.is_token_generated:
+                        self.is_token_generated = True
+                        # sleep to wait for secret storage updation process while running cronjob with multiple syncs.
+                        time.sleep(1)
+                        lock.release()
+                        self.get_token()
+                        return
                     invalid_field = "zoom.authorization_code"
-                    self.secrets_storage.set_refresh_token("")
+                    secrets = {
+                        REFRESH_TOKEN_FIELD: "",
+                        ACCESS_TOKEN_FIELD: "",
+                        EXPIRATION_TIME_FIELD: "",
+                    }
+                    self.secrets_storage.set_secrets(secrets)
                 elif reason == "Invalid request : Redirect URI mismatch.":
                     invalid_field = "zoom.redirect_uri"
                 else:
                     invalid_field = "zoom.client_id or zoom.client_secret"
                 raise AccessTokenGenerationException(
-                    f"HTTPError.\
-                    Error: {http_error}\
-                    Reason: {reason}\
-                    Solution: Please update the {invalid_field} in zoom_connector.yml file.\
-                    "
+                    f"HTTPError\n"
+                    f"Error: {http_error}\n"
+                    f"Reason: {reason}\n"
+                    f"Solution: Please update the {invalid_field} in zoom_connector.yml."
                 )
             self.logger.exception(f"HTTPError: {http_error}")
             raise http_error
@@ -119,24 +153,6 @@ class ZoomClient:
             raise exception
         except Exception as exception:
             raise AccessTokenGenerationException(exception)
-
-    def regenerate_token():
-        """Decorator for regenerating access_token after its expiraion time.
-        calls the wrapped method to get new access_token from Zoom.
-        """
-
-        def decorator(func):
-            """This function used as a decorator."""
-            # the function that is used to check
-            # the access token and refresh if necessary
-            def wrapper(self, *args, **kwargs):
-                """This function execute the refresh token logic if access token is expired."""
-                lock.acquire()
-                if time.time() > self.zoom_client.access_token_expiration:
-                    self.zoom_client.get_token()
+        finally:
+            if lock.locked():
                 lock.release()
-                return func(self, *args, **kwargs)
-
-            return wrapper
-
-        return decorator

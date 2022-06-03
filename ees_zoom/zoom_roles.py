@@ -10,13 +10,11 @@ generate documents from fetched responses.
 
 import json
 import threading
-import time
 
 import requests
 
 from .constant import ROLES
 from .utils import retry
-from .zoom_client import ZoomClient
 
 CHAT_MESSAGE_READ_PERMISSION = "ChatMessage:Read"
 
@@ -42,7 +40,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def set_list_of_roles_from_zoom(self):
         """This function will fetch all the available roles from Zoom
         and will partition them in equal groups based on zoom_sync_thread_count
@@ -59,6 +56,7 @@ class ZoomRoles:
                 response = json.loads(roles_response.text)
                 self.roles_list.extend(response[ROLES])
             elif roles_response.status_code == 401:
+                self.zoom_client.get_token()
                 self.set_list_of_roles_from_zoom()
             else:
                 roles_response.raise_for_status()
@@ -122,7 +120,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def fetch_role_permissions(self, role_id):
         """This function will fetch all the permissions using role id.
         :param role_id: string of the role ID.
@@ -140,6 +137,7 @@ class ZoomRoles:
                 response = json.loads(roles_response.text)
                 privileges_of_role.extend(response["privileges"])
             elif roles_response.status_code == 401:
+                self.zoom_client.get_token()
                 return self.fetch_role_permissions(role_id)
             else:
                 roles_response.raise_for_status()
@@ -167,7 +165,6 @@ class ZoomRoles:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def fetch_members_of_role(self, role_id):
         """Function fetches members which have role_id assigned to them.
         :param role_id: string of the role ID for which It has to fetch members.
@@ -190,8 +187,7 @@ class ZoomRoles:
                     next_page_token = response["next_page_token"]
                     users_list.extend(response["members"])
                 elif member_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
+                    self.zoom_client.get_token()
                 else:
                     member_response.raise_for_status()
         except (
@@ -212,3 +208,19 @@ class ZoomRoles:
             f"Thread: [{threading.get_ident()}] fetched : {len(users_list)} members for role id:{role_id} ."
         )
         return member_ids
+
+    def collect_chats_enabled_users_list(self):
+        """This method will iterate over list of roles. In each iteration it will fetch privileges
+        assigned to roles and members having that role. it will insert insert member id in the appropriate list
+        according to conditions specified in if block.
+        :returns: lists contains userid(member_id) which have global access to perticular object.
+        """
+        self.set_list_of_roles_from_zoom()
+        chat_permission_users_list = []
+        for role in self.roles_list:
+            role_permissions = self.fetch_role_permissions(role["id"])
+            role_members_ids = self.fetch_members_of_role(role["id"])
+            for role_permission in role_permissions:
+                if role_permission == CHAT_MESSAGE_READ_PERMISSION:
+                    chat_permission_users_list.extend(role_members_ids)
+        return chat_permission_users_list

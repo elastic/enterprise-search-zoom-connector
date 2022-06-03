@@ -9,13 +9,11 @@ the list and will create documents from the fetched responses.
 import datetime
 import json
 import threading
-import time
 
 import requests
 
 from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomMeetings:
@@ -37,7 +35,6 @@ class ZoomMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def set_meetings_from_user_id(self, user_id, start_time, end_time):
         """Method will get all the Scheduled, upcoming, and live meetings for the
         passed user id and will return those meetings which falls in between start_time
@@ -64,8 +61,7 @@ class ZoomMeetings:
                     next_page_token = response["next_page_token"]
                     meetings_for_user.extend(response[MEETINGS])
                 elif meetings_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
+                    self.zoom_client.get_token()
                 else:
                     meetings_response.raise_for_status()
         except (

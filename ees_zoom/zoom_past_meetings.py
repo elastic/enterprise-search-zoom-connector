@@ -9,13 +9,11 @@ the list and will create documents from the fetched responses.
 import datetime
 import json
 import threading
-import time
 
 import requests
 
 from .constant import PAST_MEETINGS, RFC_3339_DATETIME_FORMAT
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomPastMeetings:
@@ -34,7 +32,6 @@ class ZoomPastMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_past_meeting_details_from_meeting_id(
         self, meeting_id, start_time, end_time
     ):
@@ -64,6 +61,7 @@ class ZoomPastMeetings:
             ]:
                 return None
             elif past_meeting_response.status_code == 401:
+                self.zoom_client.get_token()
                 return self.get_past_meeting_details_from_meeting_id(
                     meeting_id, start_time, end_time
                 )
@@ -97,7 +95,6 @@ class ZoomPastMeetings:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def get_meeting_participants(self, past_meeting_id):
         """Method will get all the participants who attended the meeting.
         :param past_meeting_id: Meeting id for which participants are fetched.
@@ -122,8 +119,7 @@ class ZoomPastMeetings:
                 elif participants_response.status_code == 404:
                     return []
                 elif participants_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
+                    self.zoom_client.get_token()
                 else:
                     participants_response.raise_for_status()
         except (

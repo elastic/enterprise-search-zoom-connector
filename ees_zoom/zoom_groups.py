@@ -13,7 +13,6 @@ import requests
 
 from .constant import GROUPS
 from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomGroups:
@@ -34,7 +33,6 @@ class ZoomGroups:
             requests.exceptions.Timeout,
         )
     )
-    @ZoomClient.regenerate_token()
     def set_groups_list(self):
         """This function will fetch all the available groups from zoom
         and will create a list of dictionary for groups data."""
@@ -49,6 +47,7 @@ class ZoomGroups:
                 response = json.loads(groups_response.text)
                 self.groups_list.extend(response[GROUPS])
             elif groups_response.status_code == 401:
+                self.zoom_client.get_token()
                 self.set_groups_list()
             else:
                 groups_response.raise_for_status()
