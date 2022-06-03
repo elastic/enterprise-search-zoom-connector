@@ -302,3 +302,27 @@ def test_get_past_meetings_details_documents_with_one_participant(mock_request_g
     )
     assert response["type"] == PAST_MEETINGS
     assert response["data"] == expected_response
+
+
+@mock.patch("requests.get")
+def test_get_past_meeting_details_from_meeting_id_negative(mock_request_get):
+    """test case to handle 400 status code.
+    :param mock_request_get: mock patch for requests.get calls.
+    """
+    past_meetings_object = create_past_meetings_object()
+    start_time = datetime.datetime.strptime(
+        "2020-05-11T06:20:41Z", RFC_3339_DATETIME_FORMAT
+    )
+    end_time = datetime.datetime.strptime(
+        "2020-06-11T06:20:41Z", RFC_3339_DATETIME_FORMAT
+    )
+    meeting_id = "123123123"
+    mock_response = [Mock()]
+    mock_response[0].status_code = 400
+    mock_request_get.side_effect = mock_response
+    response = past_meetings_object.get_past_meeting_details_from_meeting_id(
+        meeting_id,
+        start_time,
+        end_time,
+    )
+    assert response is None
