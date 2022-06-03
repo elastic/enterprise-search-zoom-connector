@@ -16,11 +16,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from ees_zoom.configuration import Configuration  # noqa
 from ees_zoom.deletion_sync_command import DeletionSyncCommand  # noqa
 from ees_zoom.zoom_client import ZoomClient  # noqa
-from support import get_args  # noqa
 
 USERS = "users"
 MEETINGS = "meetings"
 GROUPS = "groups"
+CHANNELS = "channels"
 AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
 
 CONFIG_FILE = os.path.join(
@@ -54,7 +54,11 @@ def settings(requests_mock):
     zoom_client_object.secrets_storage.get_refresh_token = MagicMock(
         return_value=old_refresh_token
     )
-    url = f"{AUTH_BASE_URL}authorization_code&code={zoom_client_object.authorization_code}&redirect_uri={zoom_client_object.redirect_uri}"
+    url = (
+        AUTH_BASE_URL
+        + f"authorization_code&code={zoom_client_object.authorization_code}"
+        f"&redirect_uri={zoom_client_object.redirect_uri}"
+    )
     headers = zoom_client_object.get_headers()
     requests_mock.post(
         url,
@@ -109,7 +113,8 @@ def test_delete_documents(
     deletion_sync_obj.workplace_search_client.delete_documents = Mock()
     deletion_sync_obj.zoom_client.get_token()
     assert (
-        deletion_sync_obj.delete_documents(deleted_ids, storage_with_collection) == updated_storage_with_collection
+        deletion_sync_obj.delete_documents(deleted_ids, storage_with_collection)
+        == updated_storage_with_collection
     )
 
 
@@ -193,63 +198,22 @@ def test_collect_deleted_ids_for_users_negative(
 
 
 @pytest.mark.parametrize(
-    "meeting_id_list, deletion_response",
+    "role_id_list, deletion_response",
     [
         (
             ["844424930334011"],
-            {"code": 1001, "message": "Meeting does not exist: 844424930334011."},
+            {"code": 1001, "message": "Role does not exist: 844424930334011."},
         )
     ],
 )
-def test_collect_deleted_ids_for_meetings_positive(
+def test_collect_deleted_roles_ids_positive(
     requests_mock,
-    meeting_id_list,
+    role_id_list,
     deletion_response,
 ):
-    """Test that deletion_sync_command deletes meetings object from Enterprise Search.
+    """Test that deletion_sync_command deletes roles object from Enterprise Search.
     :param requests_mock: fixture for requests.get calls.
-    :param meeting_id_list: list of meeting_id deleted from zoom.
-    :param deletion_response: dictionary of mocked api response.
-    """
-    config, _ = settings(requests_mock)
-    args = argparse.Namespace()
-    args.config_file = CONFIG_FILE
-    deletion_sync_obj = DeletionSyncCommand(args)
-    headers = {
-        "authorization": "Bearer dummy_access_token",
-        "content-type": "application/json",
-    }
-    requests_mock.get(
-        "https://api.zoom.us/v2/meetings/844424930334011",
-        headers=headers,
-        json=deletion_response,
-        status_code=404,
-    )
-    deletion_sync_obj.zoom_client.get_token()
-    deletion_sync_obj.collect_deleted_ids(meeting_id_list, MEETINGS)
-    assert meeting_id_list == deletion_sync_obj.global_deletion_ids
-
-
-@pytest.mark.parametrize(
-    "meeting_id_list, deletion_response",
-    [
-        (
-            ["844424930334011"],
-            {
-                "id": "844424930334011",
-                "type": "meetings",
-            },
-        )
-    ],
-)
-def test_collect_deleted_ids_for_meetings_negative(
-    requests_mock,
-    meeting_id_list,
-    deletion_response,
-):
-    """Test that deletion_sync_command won't delete meetings object from Enterprise Search if it exist in Zoom.
-    :param requests_mock: fixture for requests.get calls.
-    :param meeting_id_list: list of meeting_id deleted from zoom.
+    :param role_id_list: list of role_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
     _, _ = settings(requests_mock)
@@ -261,13 +225,54 @@ def test_collect_deleted_ids_for_meetings_negative(
         "content-type": "application/json",
     }
     requests_mock.get(
-        "https://api.zoom.us/v2/meetings/844424930334011",
+        "https://api.zoom.us/v2/roles/844424930334011",
+        headers=headers,
+        json=deletion_response,
+        status_code=300,
+    )
+    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
+    assert role_id_list == deletion_sync_obj.global_deletion_ids
+
+
+@pytest.mark.parametrize(
+    "role_id_list, deletion_response",
+    [
+        (
+            ["844424930334011"],
+            {
+                "id": "844424930334011",
+                "type": "roles",
+            },
+        )
+    ],
+)
+def test_collect_deleted_roles_ids_negative(
+    requests_mock,
+    role_id_list,
+    deletion_response,
+):
+    """Test that deletion_sync_command won't delete roles object from Enterprise Search if it exist in Zoom.
+    :param requests_mock: fixture for requests.get calls.
+    :param role_id_list: list of role_id deleted from zoom.
+    :param deletion_response: dictionary of mocked api response.
+    """
+    _, _ = settings(requests_mock)
+    args = argparse.Namespace()
+    args.config_file = CONFIG_FILE
+    deletion_sync_obj = DeletionSyncCommand(args)
+    headers = {
+        "authorization": "Bearer dummy_access_token",
+        "content-type": "application/json",
+    }
+    requests_mock.get(
+        "https://api.zoom.us/v2/roles/844424930334011",
         headers=headers,
         json=deletion_response,
         status_code=200,
     )
     deletion_sync_obj.zoom_client.get_token()
-    deletion_sync_obj.collect_deleted_ids(meeting_id_list, MEETINGS)
+    deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
     assert [] == deletion_sync_obj.global_deletion_ids
 
 
@@ -348,4 +353,3 @@ def test_collect_deleted_ids_for_groups_negative(
     deletion_sync_obj.zoom_client.get_token()
     deletion_sync_obj.collect_deleted_ids(group_id_list, GROUPS)
     assert [] == deletion_sync_obj.global_deletion_ids
-
