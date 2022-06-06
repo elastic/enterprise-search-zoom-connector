@@ -46,7 +46,7 @@ def test_execute(caplog):
             "size": "text",
         },
         "display": {
-           "title_field": "title",
+            "title_field": "title",
             "description_field": "description",
             "url_field": "url",
             "detail_fields": [

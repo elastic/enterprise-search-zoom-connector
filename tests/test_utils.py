@@ -8,8 +8,11 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from ees_zoom.utils import (split_documents_into_equal_chunks,  # noqa
-                            split_list_into_buckets, url_encode) # noqa
+from ees_zoom.utils import (  # noqa
+    split_documents_into_equal_chunks,
+    split_list_into_buckets,
+    url_encode,
+)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 

@@ -69,7 +69,9 @@ class PermissionSyncCommand(BaseCommand):
                         user=permission["user"],
                         body={"permissions": permission["permissions"]},
                     )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                self.logger.info(
+                    "Successfully removed the permissions from the workplace."
+                )
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
@@ -87,7 +89,9 @@ class PermissionSyncCommand(BaseCommand):
                 user=user_name,
                 body={"permissions": permissions},
             )
-            self.logger.info(f"Successfully indexed the permissions for user {user_name} to the workplace")
+            self.logger.info(
+                f"Successfully indexed the permissions for user {user_name} to the workplace"
+            )
         except Exception as exception:
             self.logger.exception(
                 f"Error while indexing the permissions for user: {user_name} to the workplace. Error: {exception}"
