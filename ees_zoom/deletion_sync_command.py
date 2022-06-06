@@ -101,8 +101,8 @@ class DeletionSyncCommand(BaseCommand):
             sync_zoom = SyncZoom(
                 self.config,
                 self.logger,
-                self.zoom_client,
                 self.workplace_search_client,
+                self.zoom_client,
                 objects_time_range,
                 {},
                 {},
