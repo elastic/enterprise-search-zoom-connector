@@ -80,8 +80,8 @@ class SyncZoom:
             self.zoom_enterprise_search_mappings,
         )
         partitioned_users_lists = split_list_into_buckets(
-            users_object.get_users_list(),
-            self.zoom_sync_thread_count,
+            documents=users_object.get_users_list(),
+            total_buckets=self.zoom_sync_thread_count,
         )
         return partitioned_users_lists
 
@@ -100,11 +100,11 @@ class SyncZoom:
         )
         users_schema = self.get_schema_fields(USERS)
         fetched_documents = users_object.get_users_details_documents(
-            users_schema,
-            partitioned_users_list,
-            self.objects_time_range[USERS][0],
-            self.objects_time_range[USERS][1],
-            self.enable_permission,
+            users_schema=users_schema,
+            users_data=partitioned_users_list,
+            start_time=self.objects_time_range[USERS][0],
+            end_time=self.objects_time_range[USERS][1],
+            enable_permission=self.enable_permission,
         )
         users_data = fetched_documents["data"]
         self.queue.append_to_queue(users_data)
@@ -128,12 +128,12 @@ class SyncZoom:
             checkpoint_object = PAST_MEETINGS
             meetings_schema = {}
         fetched_documents = meetings_object.get_meetings_details_documents(
-            partitioned_users_list,
-            meetings_schema,
-            self.objects_time_range[checkpoint_object][0],
-            self.objects_time_range[checkpoint_object][1],
-            is_meetings_in_objects,
-            self.enable_permission,
+            users_data=partitioned_users_list,
+            meetings_schema=meetings_schema,
+            start_time=self.objects_time_range[checkpoint_object][0],
+            end_time=self.objects_time_range[checkpoint_object][1],
+            is_meetings_in_objects=is_meetings_in_objects,
+            enable_permission=self.enable_permission,
         )
         meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(meetings_data)
@@ -154,11 +154,11 @@ class SyncZoom:
         past_meetings_schema = self.get_schema_fields(PAST_MEETINGS)
         fetched_documents = []
         fetched_documents = past_meetings_object.get_past_meetings_details_documents(
-            meetings_object.meetings_past_meetings_list,
-            past_meetings_schema,
-            self.objects_time_range[PAST_MEETINGS][0],
-            self.objects_time_range[PAST_MEETINGS][1],
-            self.enable_permission,
+            meetings_data=meetings_object.meetings_past_meetings_list,
+            past_meetings_schema=past_meetings_schema,
+            start_time=self.objects_time_range[PAST_MEETINGS][0],
+            end_time=self.objects_time_range[PAST_MEETINGS][1],
+            enable_permission=self.enable_permission,
         )
         past_meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(past_meetings_data)
@@ -178,9 +178,9 @@ class SyncZoom:
         )
         for roles in roles_list:
             fetched_documents = roles_object.get_roles_details_documents(
-                roles_schema,
-                roles,
-                self.enable_permission,
+                roles_schema=roles_schema,
+                roles_data=roles,
+                enable_permission=self.enable_permission,
             )
             roles_data = fetched_documents["data"]
             self.queue.append_to_queue(roles_data)
@@ -197,9 +197,9 @@ class SyncZoom:
         groups_object.set_groups_list()
         fetched_documents = []
         fetched_documents = groups_object.get_groups_details_documents(
-            groups_schema,
-            groups_object.groups_list,
-            self.enable_permission,
+            groups_schema=groups_schema,
+            groups_data=groups_object.groups_list,
+            enable_permission=self.enable_permission,
         )
         groups_data = fetched_documents["data"]
         self.queue.append_to_queue(groups_data)
