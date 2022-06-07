@@ -1,3 +1,9 @@
+#
+# Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+# or more contributor license agreements. Licensed under the Elastic License 2.0;
+# you may not use this file except in compliance with the Elastic License 2.0.
+#
+
 import logging
 import os
 import sys
@@ -106,10 +112,7 @@ def test_get_token_when_refresh_token_absent(requests_mock):
         os.remove(SECRETS_JSON_PATH)
     new_refresh_token = "new_dummy_refresh_token"
     access_token = "dummy_access_token"
-    json_response = {
-        "refresh_token": new_refresh_token,
-        "access_token": access_token,
-    }
+    json_response = {"refresh_token": new_refresh_token, "access_token": access_token}
     config, logger = settings()
     zoom_client_object = ZoomClient(config, logger)
     secrets_storage = SecretsStorage(config, logger)

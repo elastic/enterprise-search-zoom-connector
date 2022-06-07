@@ -93,10 +93,7 @@ class ZoomClient:
         if refresh_token and len(refresh_token):
             url = f"{ZOOM_AUTH_BASE_URL}refresh_token&refresh_token={refresh_token}"
         else:
-            url = (
-                f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}"
-                f"&redirect_uri={self.redirect_uri}"
-            )
+            url = f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}&redirect_uri={self.redirect_uri}"
         invalid_field = ""
         try:
             response = requests.post(
@@ -138,10 +135,11 @@ class ZoomClient:
                 else:
                     invalid_field = "zoom.client_id or zoom.client_secret"
                 raise AccessTokenGenerationException(
-                    f"HTTPError\n"
-                    f"Error: {http_error}\n"
-                    f"Reason: {reason}\n"
-                    f"Solution: Please update the {invalid_field} in zoom_connector.yml."
+                    f"HTTPError.\
+                    Error: {http_error}\
+                    Reason: {reason}\
+                    Solution: Please update the {invalid_field} in zoom_connector.yml file.\
+                    "
                 )
             self.logger.exception(f"HTTPError: {http_error}")
             raise http_error
