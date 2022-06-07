@@ -21,7 +21,7 @@ class PermissionSyncDisabledException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, message="The Permission flag is disabled"):
+    def __init__(self, message="The Permission flag is disabled."):
         super().__init__(message)
 
 
@@ -38,10 +38,10 @@ class EmptyMappingException(Exception):
 
 
 class PermissionSyncCommand(BaseCommand):
-    """This class contains logic to sync user permissions from the source.
+    """This class contains logic to sync user permissions from the Zoom.
 
     It can be used to run the job that will periodically sync permissions
-    from the source to Elastic Enterprise Search."""
+    from the Zoom to Elastic Enterprise Search."""
 
     def __init__(self, args):
         super().__init__(args)
@@ -96,7 +96,7 @@ class PermissionSyncCommand(BaseCommand):
     def execute(self):
         """Runs the permission indexing logic.
 
-        This method when invoked, checks the permission of the source users and update those user
+        This method when invoked, checks the permission of the Zoom users and update those user
         permissions in the Workplace Search.
         """
         self.logger.info("Starting the permission indexing..")
@@ -125,8 +125,8 @@ class PermissionSyncCommand(BaseCommand):
                 self.workplace_add_permission(key, val)
         else:
             self.logger.error(
-                f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty. \
-                Please add the source_user->enterprise_search_user mappings to sync the permissions in the \
-                    Enterprise Search"
+                f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty."
+                "Please add the zoom user_id->enterprise_search_user mappings to sync the permissions in the"
+                "Enterprise Search"
             )
             raise EmptyMappingException

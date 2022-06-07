@@ -5,7 +5,7 @@
 #
 """test_connectivity module allows to test that connector setup is correct.
 
-It's possible to check connectivity to the source instance,
+It's possible to check connectivity to the Zoom instance,
 to Elastic Enterprise Search instance and check if ingestion of
 documents works."""
 

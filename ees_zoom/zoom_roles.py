@@ -86,7 +86,7 @@ class ZoomRoles:
         :param roles_schema: dictionary of fields available in Include_fields and DEFAULT_SCHEMA.
         :param roles_data: list of dictionary contains roles data fetched from Zoom api.
         :param enable_permission: boolean to check if permission sync is enabled or not.
-        :returns: dictionary of valid documents for roles object to be indexed.
+        :returns: dictionary containing type of data along with the data.
         """
         try:
             if not roles_data:

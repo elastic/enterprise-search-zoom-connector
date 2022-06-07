@@ -37,7 +37,7 @@ def settings():
 
 
 def test_get_refresh_token_when_json_file_absent():
-    """test the fetching mechanism of refresh token when secrets storage is unavailable."""
+    """test the fetching mechanism of secret storage data when secrets storage is unavailable."""
     config, logger = settings()
     if os.path.exists(SECRETS_JSON_PATH):
         os.remove(SECRETS_JSON_PATH)
@@ -47,7 +47,7 @@ def test_get_refresh_token_when_json_file_absent():
 
 
 def test_set_refresh_token_with_json_absent():
-    """test the storing mechanism of refresh token when secrets storage is not available."""
+    """test the storing mechanism of secret storage data when secrets storage is not available."""
     if os.path.exists(SECRETS_JSON_PATH):
         os.remove(SECRETS_JSON_PATH)
     config, logger = settings()
@@ -60,7 +60,7 @@ def test_set_refresh_token_with_json_absent():
 
 
 def test_set_refresh_token_with_json_present():
-    """test the storing mechanism of refresh token when secrets storage is available."""
+    """test the storing mechanism of secret storage data when secrets storage is available."""
     config, logger = settings()
     secrets_storage = SecretsStorage(config, logger)
     dummy_refresh_token = "abcabcabcABCABCABC"
@@ -71,7 +71,7 @@ def test_set_refresh_token_with_json_present():
 
 
 def test_get_refresh_token_from_json_file():
-    """test the fetching mechanism of refresh token when secrets storage is available."""
+    """test the fetching mechanism of secret storage data when secrets storage is available."""
     config, logger = settings()
     secrets_storage = SecretsStorage(config, logger)
     actual_refresh_token = secrets_storage.get_refresh_token()

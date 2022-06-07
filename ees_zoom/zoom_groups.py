@@ -76,7 +76,7 @@ class ZoomGroups:
         :param groups_schema: dictionary of fields available in Include_fields and DEFAULT_SCHEMA.
         :param groups_data: list of dictionary contains groups data fetched from zoom api.
         :param enable_permission: boolean to check if permission sync is enabled or not.
-        :returns: dictionary of valid documents for groups object to be indexed.
+        :returns: dictionary containing type of data along with the data.
         """
         try:
             if not groups_data:

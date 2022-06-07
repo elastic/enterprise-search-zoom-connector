@@ -19,8 +19,10 @@ class SecretsStorage:
         self.logger = logger
 
     def get_refresh_token(self):
-        """The module returns refresh token from the secrets storage if available.
-        :returns refresh_token: refresh token from the secrets storage.
+        """The module returns a dictionary containing refresh token, access token,and expiration time
+        of access token(UTC format) from the secrets storage.
+        :returns secret_store_data: a dictionary containing refresh token, access token and expiration time
+        of access token(UTC format) from the secrets storage.
         """
         if os.path.exists(SECRETS_JSON_PATH) and os.path.getsize(SECRETS_JSON_PATH) > 0:
             with open(SECRETS_JSON_PATH, encoding="UTF-8") as secrets_store:
@@ -33,8 +35,10 @@ class SecretsStorage:
                     )
 
     def set_refresh_token(self, refresh_token):
-        """The module stores refresh token in to local secrets storage.
-        :param refresh_token: refresh token to store in secrets storage.
+        """The module stores a dictionary containing refresh token, access token and expiration time
+        of access token(UTC format) in to local secrets storage.
+        :param secrets: a dictionary containing refresh token, access token and expiration time
+        of access token(UTC format) to store in secrets storage.
         """
         secrets_store_data = {REFRESH_TOKEN_FIELD: refresh_token}
         with open(SECRETS_JSON_PATH, "w", encoding="UTF-8") as secrets_store:
