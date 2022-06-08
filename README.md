@@ -694,4 +694,4 @@ Each Zoom connector requires a runtime environment that satisfies the following 
 
 The following section provide limitations of connector:
 
-- If the same meeting has been attended more than once, then the data for that past-meeting id will only contain the details of the latest instance.
+If a host reuses a meeting ID to hold additional meetings, the data associated with this ID will only refer to the latest instance of the meeting.
