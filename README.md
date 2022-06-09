@@ -694,4 +694,4 @@ Each Zoom connector requires a runtime environment that satisfies the following 
 
 The following section details limitations of this connector:
 
-If a host reuses a meeting ID to hold additional meetings, the data associated with this ID will only refer to the latest instance of the meeting.
+- If a host reuses a meeting ID to hold additional meetings, the data associated with this ID will only refer to the latest instance of the meeting.
