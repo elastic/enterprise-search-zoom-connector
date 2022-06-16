@@ -14,7 +14,7 @@ from iteration_utilities import unique_everseen
 from .constant import BATCH_SIZE
 from .utils import split_documents_into_equal_chunks
 
-CONNECTION_TIMEOUT = 100000
+CONNECTION_TIMEOUT = 60
 
 
 class SyncEnterpriseSearch:
