@@ -40,6 +40,7 @@ Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic
   - [Zoom OAuth app compatibility](#zoom-oauth-app-compatibility)
   - [Enterprise Search compatibility](#enterprise-search-compatibility)
   - [Runtime dependencies](#runtime-dependencies)
+  - [Connector Limitations](#connector-limitations)
 
 ## Setup and basic usage
 
@@ -150,6 +151,8 @@ Next, ensure the `ees_zoom` executable is on your `PATH`. For example, on macOS:
 ```shell
 export PATH=/Users/shaybanon/Library/Python/3.8/bin:$PATH
 ```
+
+Note: If you are running the connector on Windows, please ensure Microsoft Visual C++ 14.0 or greater is installed.
 
 The following table provides the installation location for each operating system:
 
@@ -664,7 +667,7 @@ chat_channel:read:admin
 role:read:admin
 recording:read:admin
 group:read:admin
-chat_channel:read:admin
+chat_messages:read:admin
 report:read:admin
 ```
 - The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
@@ -686,3 +689,9 @@ Each Zoom connector requires a runtime environment that satisfies the following 
 - Python version 3.6 or later.
 - To extract content from images: Java version 7 or later, and [`tesseract` command](https://github.com/tesseract-ocr/tesseract) installed and added to `PATH`
 - To schedule recurring syncs: a job scheduler, such as `cron`
+
+### Connector Limitations
+
+The following section details limitations of this connector:
+
+- If a host reuses a meeting ID to hold additional meetings, the data associated with this ID will only refer to the latest instance of the meeting.
