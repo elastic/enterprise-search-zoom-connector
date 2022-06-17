@@ -69,7 +69,7 @@ class LocalStorage:
 
         return storage_with_collection
 
-    def store_indexed_documents(
+    def store_indexed_documents_ids(
         self, metadata_of_fetched_documents, indexed_documents_ids
     ):
         """Stores the indexed documents to local storage

@@ -101,7 +101,7 @@ class IncrementalSyncCommand(BaseCommand):
         self.logger.info(
             f"SUMMARY : Total {len(indexed_documents_ids)} documents indexed out of {len(generated_documents_ids)}"
         )
-        self.local_storage.store_indexed_documents(
+        self.local_storage.store_indexed_documents_ids(
             metadata_of_fetched_documents, indexed_documents_ids
         )
 
