@@ -115,7 +115,7 @@ def get_current_time():
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
 
 
-def split_documents_into_equal_bytes(documents, allowed_size):
+def split_by_max_cumulative_length(documents, allowed_size):
     """This method splits a list or dictionary into list based on allowed size limit.
     :param documents: List or Dictionary to be partitioned into chunks
     :param allowed_size: Maximum size allowed for indexing per request.
