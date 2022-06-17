@@ -44,8 +44,8 @@ def test_start_producer(mock1, mock2):
         "end_time": "1111-11-11T11:11:11Z",
     }
     mock1.return_value = [MagicMock()]
-    incremental_sync.create_jobs = Mock()
-    incremental_sync.create_jobs.return_value = MagicMock()
+    incremental_sync.create_and_execute_jobs = Mock()
+    incremental_sync.create_and_execute_jobs.return_value = MagicMock()
     mock2.return_value = MagicMock()
     incremental_sync.zoom_client.get_token = Mock()
     incremental_sync.start_producer(queue, time_range)

@@ -65,7 +65,7 @@ class FullSyncCommand(BaseCommand):
             )
             partitioned_users_lists = sync_zoom.get_all_users_from_zoom()
             fetched_roles_id_list = sync_zoom.perform_sync(ROLES, [{}])
-            metadata_of_fetched_documents = self.create_jobs(
+            metadata_of_fetched_documents = self.create_and_execute_jobs(
                 thread_count,
                 sync_zoom.perform_sync,
                 (USERS,),
@@ -104,7 +104,7 @@ class FullSyncCommand(BaseCommand):
             self.config, self.logger, self.workplace_search_client, queue
         )
 
-        generated_documents_ids, indexed_documents_ids = self.create_jobs(
+        generated_documents_ids, indexed_documents_ids = self.create_and_execute_jobs(
             thread_count, sync_es.perform_sync, (), None
         )
         if not sync_es.is_error_ocurred:
