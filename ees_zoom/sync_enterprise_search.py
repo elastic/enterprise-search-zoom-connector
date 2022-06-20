@@ -15,8 +15,6 @@ from .constant import BATCH_SIZE
 from .utils import (split_by_max_cumulative_length,
                     split_documents_into_equal_chunks)
 
-CONNECTION_TIMEOUT = 100000
-
 
 class SyncEnterpriseSearch:
     """This class contains common logic for indexing to workplace search"""
