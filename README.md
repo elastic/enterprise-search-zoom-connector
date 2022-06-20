@@ -588,7 +588,7 @@ A UTC timestamp the connector uses to determine which objects to extract and syn
 start_time: 2011-10-12T00:00:00Z (default)
 ```
 
-Note: The default value of start_time would be the zoom app creation date-time: `2011-10-12T00:00:00Z`.
+Note: The default `start_time` value is when the Zoom app was created: `2011-10-12T00:00:00Z`.
 
 #### `end_time`
 
