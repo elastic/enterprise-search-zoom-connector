@@ -585,7 +585,7 @@ objects:
 A UTC timestamp the connector uses to determine which objects to extract and sync from Zoom. Determines the *starting* point for a [full sync](#full-sync).
 
 ```yaml
-start_time: 2011-10-12T00:00:00Z (default)
+start_time: YYYY-MM-DDTHH:MM:SSZ
 ```
 
 Note: The default `start_time` value is when the Zoom app was created: `2011-10-12T00:00:00Z`.
@@ -595,7 +595,7 @@ Note: The default `start_time` value is when the Zoom app was created: `2011-10-
 A UTC timestamp the connector uses to determine which objects to extract and sync from Zoom. Determines the *stopping* point for a [full sync](#full-sync).
 
 ```yaml
-end_time: 2022-04-01T04:44:16Z
+end_time: YYYY-MM-DDTHH:MM:SSZ
 ```
 
 Note: The default value of end_time would be the current date-time in RFC-3339(%Y-%m-%dT%H:%M:%SZ) format.
