@@ -317,8 +317,11 @@ def test_get_past_meeting_details_from_meeting_id_negative(mock_request_get):
         "2020-06-11T06:20:41Z", RFC_3339_DATETIME_FORMAT
     )
     meeting_id = "123123123"
+    dummy_response = {'code': 3001, 'message': 'Meeting does not exist: 123123123.'}
+    dummy_response = json.dumps(dummy_response)
     mock_response = [Mock()]
     mock_response[0].status_code = 400
+    mock_response[0].text = dummy_response
     mock_request_get.side_effect = mock_response
     response = past_meetings_object.get_past_meeting_details_from_meeting_id(
         meeting_id,
