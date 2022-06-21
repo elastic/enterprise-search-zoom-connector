@@ -12,7 +12,8 @@ from iteration_utilities import unique_everseen
 
 
 from .constant import BATCH_SIZE
-from .utils import split_documents_into_equal_chunks
+from .utils import (split_by_max_cumulative_length,
+                    split_documents_into_equal_chunks)
 
 
 class SyncEnterpriseSearch:
@@ -33,6 +34,7 @@ class SyncEnterpriseSearch:
         self.total_documents_found = 0
         self.checkpoints = []
         self.is_error_ocurred = False
+        self.max_allowed_bytes = 10000000
 
     def index_documents(self, documents):
         """This method indexes the documents to the Enterprise Search.
@@ -65,7 +67,7 @@ class SyncEnterpriseSearch:
             signal_open = True
             while signal_open:
                 documents_to_index = []
-                while len(documents_to_index) < BATCH_SIZE:
+                while len(documents_to_index) < BATCH_SIZE and len(str(documents_to_index)) < self.max_allowed_bytes:
                     documents = self.queue.get()
                     if documents.get("type") == "signal_close":
                         self.logger.info(
@@ -90,7 +92,10 @@ class SyncEnterpriseSearch:
                 for document_list in split_documents_into_equal_chunks(
                     documents_to_index, BATCH_SIZE
                 ):
-                    self.index_documents(document_list)
+                    for documents in split_by_max_cumulative_length(
+                        document_list, self.max_allowed_bytes
+                    ):
+                        self.index_documents(documents)
                     for document in document_list:
                         self.generated_documents_ids.add(document["id"])
         except Exception as exception:

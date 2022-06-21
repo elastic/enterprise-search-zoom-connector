@@ -48,7 +48,7 @@ class BaseCommand:
         """
         log_level = self.config.get_value("log_level")
         logger = logging.getLogger(__name__)
-        logger.propagate = False
+        logger.propagate = True
         logger.setLevel(log_level)
 
         handler = logging.StreamHandler()
@@ -116,7 +116,7 @@ class BaseCommand:
         """Get the Zoom client instance for the running command."""
         return ZoomClient(self.config, self.logger)
 
-    def create_jobs(self, thread_count, func, args, iterable_list):
+    def create_and_execute_jobs(self, thread_count, func, args, iterable_list):
         """Apply async calls using multithreading to the targeted function
         :param thread_count: Total number of threads to be spawned
         :param func: The target function on which the async calls would be made

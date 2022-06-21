@@ -9,6 +9,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from ees_zoom.utils import (  # noqa
+    split_by_max_cumulative_length,
     split_documents_into_equal_chunks,
     split_list_into_buckets,
     url_encode,
@@ -81,3 +82,53 @@ def test_split_documents_into_equal_chunks():
     expected_result = [["1", "3", "4"], ["6", "7", "5"], ["8", "9", "2"], ["0", "111"]]
     result = split_documents_into_equal_chunks(list_to_split, chunk_size)
     assert expected_result == result
+
+
+def test_split_by_max_cumulative_length_with_lowest_possible_size():
+    """Tests split functionality based on size"""
+    document_to_split = [
+        {"name": "dummy1", "body": "dummy1_body"},
+        {"name": "dummy2", "body": "dummy2_body"},
+        {"name": "dummy3", "body": "dummy3_body"},
+        {"name": "dummy4", "body": "dummy4_body"},
+        {"name": "dummy5", "body": "dummy5_body"},
+        {"name": "dummy6", "body": "dummy6_body"},
+    ]
+    allowed_size = 1
+    expected_output = [
+        [{"name": "dummy1", "body": None}],
+        [{"name": "dummy2", "body": None}],
+        [{"name": "dummy3", "body": None}],
+        [{"name": "dummy4", "body": None}],
+        [{"name": "dummy5", "body": None}],
+        [{"name": "dummy6", "body": None}],
+    ]
+    returned_document = split_by_max_cumulative_length(document_to_split, allowed_size)
+    assert returned_document == expected_output
+
+
+def test_split_by_max_cumulative_length_with_optimum_size():
+    """Tests split functionality based on size"""
+    document_to_split = [
+        {"name": "dummy1", "body": "dummy1_body"},
+        {"name": "dummy2", "body": "dummy2_body"},
+        {"name": "dummy3", "body": "dummy3_body"},
+        {"name": "dummy4", "body": "dummy4_body"},
+        {"name": "dummy5", "body": "dummy5_body"},
+        {"name": "dummy6", "body": "dummy6_body"},
+    ]
+    allowed_size = 140
+    expected_output = [
+        [
+            {"name": "dummy1", "body": "dummy1_body"},
+            {"name": "dummy2", "body": "dummy2_body"},
+            {"name": "dummy3", "body": "dummy3_body"},
+        ],
+        [
+            {"name": "dummy4", "body": "dummy4_body"},
+            {"name": "dummy5", "body": "dummy5_body"},
+            {"name": "dummy6", "body": "dummy6_body"},
+        ],
+    ]
+    returned_document = split_by_max_cumulative_length(document_to_split, allowed_size)
+    assert returned_document == expected_output
