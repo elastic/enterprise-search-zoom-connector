@@ -68,11 +68,11 @@ class PermissionSyncCommand(BaseCommand):
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
             )
+            raise exception
 
     def set_permissions_list(self, mappings):
         """Method fetches roles and its members from zoom along with list of permissions associated with each
         role and adds fetched permissions to enterprise search users.
-
         :param mappings: Zoom-Enterprise search mapping dictionary
         """
         roles_obj = ZoomRoles(self.config, self.logger, self.zoom_client, mappings)
