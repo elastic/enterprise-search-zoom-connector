@@ -95,7 +95,6 @@ class PermissionSyncCommand(BaseCommand):
         permissions in the Workplace Search.
         """
         self.logger.info("Starting the permission indexing..")
-        self.zoom_client.get_token()
         if not self.enable_document_permission:
             self.logger.warning("Exiting as the enable permission flag is set to False")
             raise PermissionSyncDisabledException
