@@ -5,11 +5,26 @@
 #
 """This module perform operations related to Enterprise Search based on the Enterprise Search version
 """
-import elastic_transport
 from elastic_enterprise_search import WorkplaceSearch, __version__
 from packaging import version
 
+from .utils import retry
+
 ENTERPRISE_V8 = version.parse("8.0")
+
+if version.parse(__version__) >= ENTERPRISE_V8:
+    from elastic_enterprise_search.exceptions import (BadGatewayError,
+                                                      BadRequestError,
+                                                      ConflictError,
+                                                      GatewayTimeoutError,
+                                                      InternalServerError,
+                                                      ServiceUnavailableError)
+else:
+    from elastic_transport.exceptions import (BadGatewayError,
+                                              GatewayTimeoutError,
+                                              InternalServerError,
+                                              NotFoundError,
+                                              ServiceUnavailableError)
 
 
 class EnterpriseSearchWrapper:
@@ -21,6 +36,7 @@ class EnterpriseSearchWrapper:
         self.host = config.get_value("enterprise_search.host_url")
         self.api_key = config.get_value("enterprise_search.api_key")
         self.ws_source = config.get_value("enterprise_search.source_id")
+        self.retry_count = config.get_value("retry_count")
         if self.version >= ENTERPRISE_V8:
             if hasattr(args, "user") and args.user:
                 self.workplace_search_client = WorkplaceSearch(
@@ -49,9 +65,6 @@ class EnterpriseSearchWrapper:
         """
         try:
             if self.version >= ENTERPRISE_V8:
-                from elastic_enterprise_search.exceptions import (
-                    BadRequestError, ConflictError)
-
                 external_user_properties = [
                     {
                         "attribute_name": "_elasticsearch_username",
@@ -84,7 +97,7 @@ class EnterpriseSearchWrapper:
                         user=user_name,
                         body={"permissions": permission_list},
                     )
-                except elastic_transport.exceptions.NotFoundError:
+                except NotFoundError:
                     raise ValueError("Incompatible version")
             self.logger.info(
                 f"Successfully indexed the permissions for user {user_name} to the workplace"
@@ -110,7 +123,7 @@ class EnterpriseSearchWrapper:
                     user_permission = self.workplace_search_client.list_permissions(
                         content_source_id=self.ws_source,
                     )
-                except elastic_transport.exceptions.NotFoundError:
+                except NotFoundError:
                     raise ValueError("Incompatible version")
             self.logger.info(
                 "Successfully retrieves all permissions from the workplace"
@@ -145,7 +158,7 @@ class EnterpriseSearchWrapper:
                         user=user_name,
                         body={"permissions": permission["permissions"]},
                     )
-                except elastic_transport.exceptions.NotFoundError:
+                except NotFoundError:
                     raise ValueError("Incompatible version")
             self.logger.info("Successfully removed the permissions from the workplace.")
         except ValueError as error:
@@ -201,6 +214,14 @@ class EnterpriseSearchWrapper:
                 f"Error while checking for deleted documents. Error: {exception}"
             )
 
+    @retry(
+        exception_list=(
+            BadGatewayError,
+            GatewayTimeoutError,
+            InternalServerError,
+            ServiceUnavailableError,
+        )
+    )
     def index_documents(self, documents, timeout):
         """Indexes one or more new documents into a custom content source, or updates one
         or more existing documents
@@ -213,6 +234,16 @@ class EnterpriseSearchWrapper:
                 documents=documents,
                 request_timeout=timeout,
             )
+        except (
+            BadGatewayError,
+            GatewayTimeoutError,
+            InternalServerError,
+            ServiceUnavailableError,
+        ) as exception:
+            self.logger.exception(
+                f"Error while indexing the documents. Error: {exception}"
+            )
+            raise exception
         except Exception as exception:
             self.logger.exception(f"Error while indexing the documents. Error: {exception}")
             raise exception

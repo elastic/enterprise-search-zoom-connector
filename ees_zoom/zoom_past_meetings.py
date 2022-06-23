@@ -56,12 +56,12 @@ class ZoomPastMeetings:
             if past_meeting_response and past_meeting_response.status_code == 200:
                 response = json.loads(past_meeting_response.text)
                 past_meeting_details = response
-            elif past_meeting_response.status_code == 404:
-                return None
-            elif past_meeting_response.status_code == 400 and response["code"] in [
-                300,
-                200,
-            ]:
+            elif past_meeting_response.status_code in [404, 400]:
+                response = json.loads(past_meeting_response.text)
+                self.logger.debug(
+                    f"Meeting with id {meeting_id} is skipped. "
+                    f"Error Code: {response['code']}, Reason: {response['message']}"
+                )
                 return None
             elif past_meeting_response.status_code == 401:
                 return self.get_past_meeting_details_from_meeting_id(
