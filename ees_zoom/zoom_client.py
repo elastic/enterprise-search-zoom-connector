@@ -17,6 +17,7 @@ from .secrets_storage import SecretsStorage
 from .utils import retry
 
 ZOOM_AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
+ZOOM_BASE_URL = "https://api.zoom.us/v2/"
 
 
 class AccessTokenGenerationException(Exception):
@@ -62,6 +63,40 @@ class ZoomClient:
         }
         return request_headers
 
+    def handle_4xx_error(self, json_data, http_error):
+        """Module handles 4xx error ocurred while fetching tokens from Zoom.
+        Raises the Exception accordingly.
+        :param json_data: json response from Zoom.
+        :param http_error: Exception raised from requests module.
+
+        Raises:
+            AccessTokenGenerationException: Custom Exception for handling 4xx error.
+        """
+        invalid_field = ""
+        reason = json_data.get("reason", "")
+        refresh_token = self.secrets_storage.get_refresh_token()
+        if reason in ["Invalid Token!", "Invalid authorization code"]:
+            if not self.is_token_generated:
+                self.is_token_generated = True
+                # sleep to wait for secret storage update process while running cronjob with multiple syncs.
+                time.sleep(1)
+                lock.release()
+                self.get_token()
+                return
+            invalid_field = "zoom.authorization_code"
+            self.secrets_storage.set_refresh_token(refresh_token)
+        elif reason == "Invalid request : Redirect URI mismatch.":
+            invalid_field = "zoom.redirect_uri"
+        else:
+            invalid_field = "zoom.client_id or zoom.client_secret"
+
+        raise AccessTokenGenerationException(
+            f"HTTPError\n"
+            f"Error: {http_error}\n"
+            f"Reason: {reason}\n"
+            f"Solution: Please update the {invalid_field} in zoom_connector.yml."
+        )
+
     @retry(
         exception_list=(
             requests.exceptions.ConnectionError,
@@ -84,7 +119,6 @@ class ZoomClient:
             url = f"{ZOOM_AUTH_BASE_URL}refresh_token&refresh_token={refresh_token}"
         else:
             url = f"{ZOOM_AUTH_BASE_URL}authorization_code&code={self.authorization_code}&redirect_uri={self.redirect_uri}"
-        invalid_field = ""
         try:
             response = requests.post(
                 url=url,
@@ -99,30 +133,68 @@ class ZoomClient:
                 self.secrets_storage.set_refresh_token(refresh_token)
         except requests.exceptions.HTTPError as http_error:
             if response.status_code in [400, 401]:
-                reason = json_data.get("reason", "")
-                if reason in ["Invalid Token!", "Invalid authorization code"]:
-                    invalid_field = "zoom.authorization_code"
-                    self.secrets_storage.set_refresh_token("")
-                elif reason == "Invalid request : Redirect URI mismatch.":
-                    invalid_field = "zoom.redirect_uri"
-                else:
-                    invalid_field = "zoom.client_id or zoom.client_secret"
-                raise AccessTokenGenerationException(
-                    f"HTTPError.\
-                    Error: {http_error}\
-                    Reason: {reason}\
-                    Solution: Please update the {invalid_field} in zoom_connector.yml file.\
-                    "
-                )
+                self.handle_4xx_error(json_data, http_error)
             self.logger.exception(f"HTTPError: {http_error}")
             raise http_error
+        finally:
+            if lock.locked():
+                lock.release()
+
+    @retry(
+        exception_list=(
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        )
+    )
+    def get(self, end_point, key, is_paginated=False):
+        """Makes get call to Zoom api endpoint
+
+        :param end_point: endpoint url with query parameters
+        :param key: Response json key to parse on successful get call
+        :returns api_response: list of dictionary containing response from endpoint.
+        """
+        # Set access token either from secrets storage or fetch new one from Zoom in case it is expired
+        self.get_token()
+        next_page_token = True
+        api_response = []
+
+        try:
+            while next_page_token:
+                url = f"{ZOOM_BASE_URL}{end_point}"
+                if next_page_token is not True:
+                    url = f"{url}&next_page_token={next_page_token}"
+                headers = {
+                    "authorization": f"Bearer {self.access_token}",
+                    "content-type": "application/json",
+                }
+
+                response = requests.get(url=url, headers=headers)
+
+                if response and response.status_code == 200:
+                    response = json.loads(response.text)
+                    if key == "past_meetings":
+                        return response
+                    if response.get(key):
+                        api_response.extend(response[key])
+                    next_page_token = (
+                        response.get("next_page_token") if is_paginated else None
+                    )
+                elif key == "privileges" and response.status_code == 300:
+                    raise requests.exceptions.HTTPError(response=response)
+                elif response.status_code == 401:
+                    self.get_token()
+                else:
+                    response.raise_for_status()
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
-            requests.exceptions.RequestException,
+            requests.exceptions.HTTPError,
         ) as exception:
+            self.logger.exception(
+                f"HTTP Error occurred while fetching response for {end_point} "
+                f"from Zoom. Error: {exception}"
+            )
             raise exception
         except Exception as exception:
-            raise AccessTokenGenerationException(exception)
-        finally:
-            lock.release()
+            raise exception
+        return api_response

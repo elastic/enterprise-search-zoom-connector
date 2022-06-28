@@ -37,7 +37,6 @@ class IncrementalSyncCommand(BaseCommand):
         """
         self.logger.debug("Starting the incremental sync..")
         thread_count = self.config.get_value("zoom_sync_thread_count")
-        self.zoom_client.get_token()
         current_time = get_current_time()
         try:
             sync_zoom = SyncZoom(
