@@ -68,3 +68,20 @@ class LocalStorage:
         )
 
         return storage_with_collection
+
+    def store_indexed_documents_ids(
+        self, metadata_of_fetched_documents, indexed_documents_ids
+    ):
+        """Stores the indexed documents to local storage
+        :param metadata_of_fetched_documents: List of dictionary containing meta data of fetched documents.
+        :param indexed_documents_ids: list of ids of indexed documents.
+        """
+        try:
+            storage_with_collection = self.get_storage_with_collection()
+            # for loop appends only those documents which were indexed to Enterprise search.
+            for document in metadata_of_fetched_documents:
+                if document not in storage_with_collection["global_keys"] and document["id"] in indexed_documents_ids:
+                    storage_with_collection["global_keys"].append(document)
+            self.update_storage(storage_with_collection)
+        except ValueError as value_error:
+            self.logger.error(f"Exception while updating storage: {value_error}")

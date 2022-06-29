@@ -56,20 +56,12 @@ class PermissionSyncCommand(BaseCommand):
     def remove_all_permissions(self):
         """Removes all the permissions present in the workplace"""
         try:
-            user_permission = self.workplace_search_client.list_permissions(
-                content_source_id=self.ws_source,
-            )
-
+            user_permission = self.workplace_search_client.list_permissions()
             if user_permission:
                 self.logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission["results"]
                 for permission in permission_list:
-                    self.workplace_search_client.remove_user_permissions(
-                        content_source_id=self.ws_source,
-                        user=permission["user"],
-                        body={"permissions": permission["permissions"]},
-                    )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                    self.workplace_search_client.remove_permissions(permission)
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
@@ -82,11 +74,7 @@ class PermissionSyncCommand(BaseCommand):
         :param user_name: user to assign permissions
         """
         try:
-            self.workplace_search_client.add_user_permissions(
-                content_source_id=self.ws_source,
-                user=user_name,
-                body={"permissions": permissions},
-            )
+            self.workplace_search_client.add_permissions(user_name, permissions)
             self.logger.info(f"Successfully indexed the permissions for user {user_name} to the workplace")
         except Exception as exception:
             self.logger.exception(
