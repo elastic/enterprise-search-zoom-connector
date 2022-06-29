@@ -6,14 +6,9 @@
 """zoom_channels module is responsible to get all the available channels based on
 user id from Zoom and generate documents from fetched responses."""
 
-import json
 import threading
-import time
-
-import requests
 
 from .constant import CHANNELS
-from .utils import retry
 
 
 class ZoomChannels:
@@ -26,51 +21,18 @@ class ZoomChannels:
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
     def get_channels_from_user_id(self, user_id):
         """This function is used to fetch channels from Zoom based on user id.
         :param user_id: String of Zoom user id.
         :returns: list of dictionary containing channels.
         """
         channels_list = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = (
-                    f"https://api.zoom.us/v2/chat/users/{user_id}/channels?page_size=50"
-                )
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "Authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                channels_response = requests.get(url=url, headers=headers)
-                if channels_response and channels_response.status_code == 200:
-                    response = json.loads(channels_response.text)
-                    if response["total_records"] == 0 or CHANNELS not in response.keys():
-                        return channels_list
-                    next_page_token = response["next_page_token"]
-                    channels_list.extend(response[CHANNELS])
-                elif channels_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    channels_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching channels from Zoom: {exception}"
+            channels_list = self.zoom_client.get(
+                end_point=f"chat/users/{user_id}/channels?page_size=50",
+                key=CHANNELS,
+                is_paginated=True,
             )
-            raise exception
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching channels from Zoom: {exception}"

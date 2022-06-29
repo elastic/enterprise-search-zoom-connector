@@ -220,9 +220,9 @@ class SyncZoom:
             self.zoom_enterprise_search_mappings,
         )
         fetched_documents = channels_object.get_channels_details_documents(
-            partitioned_users_list,
-            channel_schema,
-            self.enable_permission,
+            users_data=partitioned_users_list,
+            channel_schema=channel_schema,
+            enable_permission=self.enable_permission,
         )
         channels_data = fetched_documents["data"]
         self.queue.append_to_queue(channels_data)

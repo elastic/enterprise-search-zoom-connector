@@ -62,6 +62,7 @@ def test_get_channels_details_documents(mock_request_get):
     """Test for generating channels documents, generated from data fetched from Zoom.
     :param mock_request_get: mock patch for requests.get calls.
     """
+    # Setup
     channels_object = create_channels_object()
     dummy_users_data = [
         {
@@ -155,11 +156,15 @@ def test_get_channels_details_documents(mock_request_get):
     mock_response[1].status_code = 200
     mock_response[1].text = mock_resp_without_next_page_token
     mock_request_get.side_effect = mock_response
+
+    # Execute
     response = channels_object.get_channels_details_documents(
         dummy_users_data,
         SCHEMA,
         enable_permission,
     )
+
+    # Assert
     assert response["type"] == CHANNELS
     assert response["data"] == expected_response
 
@@ -169,6 +174,7 @@ def test_get_channels_details_documents_negative(mock_request_get):
     """test case where Zoom is down
     :param mock_request_get: mock patch for requests.get calls.
     """
+    # Setup
     dummy_users_data = [
         {
             "id": "dummy_id_1",
@@ -198,6 +204,8 @@ def test_get_channels_details_documents_negative(mock_request_get):
     raise_for_status = requests.exceptions.HTTPError
     mock_response.raise_for_status.side_effect = raise_for_status
     mock_request_get.return_value = mock_response
+
+    # Execute and assert
     with pytest.raises(BaseException):
         channels_object.get_channels_details_documents(
             dummy_users_data,
