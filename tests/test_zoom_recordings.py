@@ -67,6 +67,7 @@ def test_get_recordings_details_documents_positive(mock_request_get):
     """Test for generating recording documents, generated from data fetched from Zoom.
     :param mock_request_get: mock patch for requests.get calls.
     """
+    # Setup
     recordings_object = create_recordings_object()
     dummy_users_data = [
         {
@@ -296,6 +297,8 @@ def test_get_recordings_details_documents_positive(mock_request_get):
     mock_response[1].status_code = 200
     mock_response[1].text = mock_resp_without_next_page_token
     mock_request_get.side_effect = mock_response
+
+    # Execute
     response = recordings_object.get_recordings_details_documents(
         dummy_users_data,
         SCHEMA,
@@ -303,6 +306,8 @@ def test_get_recordings_details_documents_positive(mock_request_get):
         end_time,
         enable_permission,
     )
+
+    # Assert
     assert response["type"] == RECORDING
     assert response["data"] == expected_response
 
@@ -312,6 +317,7 @@ def test_get_recordings_details_documents_negative(mock_request_get):
     """test case where Zoom is down
     :param mock_request_get: mock patch for requests.get calls.
     """
+    # Setup
     dummy_users_data = [
         {
             "id": "dummy_id_1",
@@ -347,6 +353,8 @@ def test_get_recordings_details_documents_negative(mock_request_get):
     raise_for_status = requests.exceptions.HTTPError
     mock_response.raise_for_status.side_effect = raise_for_status
     mock_request_get.return_value = mock_response
+
+    # Execute and assert
     with pytest.raises(BaseException):
         recordings_object.get_recordings_details_documents(
             dummy_users_data,

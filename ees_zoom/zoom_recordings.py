@@ -6,16 +6,10 @@
 """This module will fetch recordings for the user id present in
 the list and will create a document from the fetched response.
 """
-import json
 import threading
-import time
 
-import requests
-
-from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT
-from .utils import retry, url_encode
-
-RECORDINGS = "recordings"
+from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT, RECORDINGS
+from .utils import url_encode
 
 
 class ZoomRecordings:
@@ -30,12 +24,6 @@ class ZoomRecordings:
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
     def get_recordings_from_user_id(
         self,
         user_id,
@@ -49,40 +37,17 @@ class ZoomRecordings:
         :returns: list of dictionary containing recorded data for each user.
         """
         recordings_for_user = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = f"https://api.zoom.us/v2/users/{user_id}/recordings?page_size=300&from={start_time}&to={end_time}"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                recordings_response = requests.get(url=url, headers=headers)
-                if recordings_response and recordings_response.status_code == 200:
-                    response = json.loads(recordings_response.text)
-                    next_page_token = response["next_page_token"]
-                    recordings_for_user.extend(response[MEETINGS])
-                elif recordings_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    recordings_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching recordings from Zoom: {exception}"
+            url = f"users/{user_id}/recordings?page_size=300&from={start_time}&to={end_time}"
+            recordings_for_user = self.zoom_client.get(
+                end_point=url, key=MEETINGS, is_paginated=True
             )
-            raise exception
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching recordings from Zoom: {exception}"
             )
             raise exception
+
         self.logger.info(
             f"Thread: [{threading.get_ident()}] fetched total : {len(recordings_for_user)} Recordings for {user_id}."
         )
