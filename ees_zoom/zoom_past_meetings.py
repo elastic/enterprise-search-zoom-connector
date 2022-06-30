@@ -48,7 +48,7 @@ class ZoomPastMeetings:
                     f"Error Code: {response['code']}, Reason: {response['message']}"
                 )
                 return None
-            raise HTTPException
+            raise
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching past_meetings from Zoom. : {exception}"
@@ -79,7 +79,7 @@ class ZoomPastMeetings:
                 self.logger.exception(
                     f"Unknown error occurred while fetching meeting participants from Zoom. Error: {HTTPException}"
                 )
-                raise HTTPException
+                raise
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching meeting participants from Zoom: {exception}"
