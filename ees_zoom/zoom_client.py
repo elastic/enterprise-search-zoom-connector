@@ -81,7 +81,7 @@ class ZoomClient:
                 # sleep to wait for secret storage update process while running cronjob with multiple syncs.
                 time.sleep(1)
                 lock.release()
-                self.get_token()
+                self.ensure_token_valid()
                 return
             invalid_field = "zoom.authorization_code"
             self.secrets_storage.set_refresh_token(refresh_token)
@@ -104,7 +104,7 @@ class ZoomClient:
             requests.exceptions.RequestException,
         )
     )
-    def get_token(self):
+    def ensure_token_valid(self):
         """This module generates access token and refresh token using stored refresh token. If refresh token is not stored then uses
         authorization code."""
         lock.acquire()
@@ -154,7 +154,7 @@ class ZoomClient:
         :returns api_response: list of dictionary containing response from endpoint.
         """
         # Set access token either from secrets storage or fetch new one from Zoom in case it is expired
-        self.get_token()
+        self.ensure_token_valid()
         next_page_token = True
         api_response = []
 
@@ -182,7 +182,7 @@ class ZoomClient:
                 elif key == "privileges" and response.status_code == 300:
                     raise requests.exceptions.HTTPError(response=response)
                 elif response.status_code == 401:
-                    self.get_token()
+                    self.ensure_token_valid()
                 else:
                     response.raise_for_status()
         except (
