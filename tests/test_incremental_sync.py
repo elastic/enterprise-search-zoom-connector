@@ -47,7 +47,7 @@ def test_start_producer(mock1, mock2):
     incremental_sync.create_and_execute_jobs = Mock()
     incremental_sync.create_and_execute_jobs.return_value = MagicMock()
     mock2.return_value = MagicMock()
-    incremental_sync.zoom_client.get_token = Mock()
+    incremental_sync.zoom_client.ensure_token_valid = Mock()
     incremental_sync.start_producer(queue, time_range)
     time_independent_objects = ["roles", "groups"]
     object_types_count = 0
