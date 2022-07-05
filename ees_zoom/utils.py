@@ -113,3 +113,30 @@ def split_documents_into_equal_chunks(documents, chunk_size):
 def get_current_time():
     """Returns current time in rfc 3339 format"""
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
+
+
+def split_by_max_cumulative_length(documents, allowed_size):
+    """This method splits a list or dictionary into list based on allowed size limit.
+    :param documents: List or Dictionary to be partitioned into chunks
+    :param allowed_size: Maximum size allowed for indexing per request.
+    Returns:
+        list_of_chunks: List of list of dictionary containing the dictionaries to be indexed.
+    """
+    list_of_chunks = []
+    chunk = []
+    current_size = allowed_size
+    for document in documents:
+        document_size = len(str(document))
+        if document_size < current_size:
+            chunk.append(document)
+            current_size -= document_size
+        else:
+            if chunk:
+                list_of_chunks.append(chunk)
+            if document_size > allowed_size:
+                document["body"] = None
+                document_size = len(str(document))
+            chunk = [document]
+            current_size = allowed_size - document_size
+    list_of_chunks.append(chunk)
+    return list_of_chunks
