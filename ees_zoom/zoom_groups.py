@@ -6,14 +6,9 @@
 
 """zoom_groups module is responsible to get all the available groups from Zoom."""
 
-import json
 import threading
 
-import requests
-
 from .constant import GROUPS
-from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomGroups:
@@ -28,39 +23,12 @@ class ZoomGroups:
         self.groups_list = []
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def set_groups_list(self):
         """This function will fetch all the available groups from zoom
         and will create a list of dictionary for groups data."""
         try:
-            url = "https://api.zoom.us/v2/groups"
-            headers = {
-                "authorization": f"Bearer {self.zoom_client.access_token}",
-                "content-type": "application/json",
-            }
-            groups_response = requests.get(url=url, headers=headers)
-            if groups_response and groups_response.status_code == 200:
-                response = json.loads(groups_response.text)
-                self.groups_list.extend(response[GROUPS])
-            elif groups_response.status_code == 401:
-                self.set_groups_list()
-            else:
-                groups_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching groups from Zoom: {exception}"
-            )
-            raise exception
+            groups_response_list = self.zoom_client.get(end_point="groups", key=GROUPS)
+            self.groups_list.extend(groups_response_list)
         except Exception as exception:
             self.logger.error(
                 f"Error occurred while fetching groups from Zoom: {exception}"

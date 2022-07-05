@@ -7,15 +7,9 @@
 the list and will create documents from the fetched responses.
 """
 import datetime
-import json
 import threading
-import time
-
-import requests
 
 from .constant import MEETINGS, RFC_3339_DATETIME_FORMAT
-from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomMeetings:
@@ -31,13 +25,6 @@ class ZoomMeetings:
         self.meetings_past_meetings_list = []
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def set_meetings_from_user_id(self, user_id, start_time, end_time):
         """Method will get all the Scheduled, upcoming, and live meetings for the
         passed user id and will return those meetings which falls in between start_time
@@ -48,35 +35,12 @@ class ZoomMeetings:
         :returns: List of valid meetings for user_id.
         """
         meetings_for_user = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = f"https://api.zoom.us/v2/users/{user_id}/meetings?page_size=300"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                meetings_response = requests.get(url=url, headers=headers)
-                if meetings_response and meetings_response.status_code == 200:
-                    response = json.loads(meetings_response.text)
-                    next_page_token = response["next_page_token"]
-                    meetings_for_user.extend(response[MEETINGS])
-                elif meetings_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    meetings_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching meetings from Zoom: {exception}"
+            meetings_for_user = self.zoom_client.get(
+                end_point=f"users/{user_id}/meetings?page_size=300",
+                key=MEETINGS,
+                is_paginated=True,
             )
-            raise exception
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching meetings from Zoom: {exception}"
