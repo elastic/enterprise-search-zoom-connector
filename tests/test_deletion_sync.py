@@ -47,13 +47,10 @@ def settings(requests_mock):
         os.remove(SECRETS_JSON_PATH)
     logger = logging.getLogger("unit_test_deletion_sync")
     new_refresh_token = "new_dummy_refresh_token"
-    old_refresh_token = "old_dummy_refresh_token"
     access_token = "dummy_access_token"
     json_response = {"refresh_token": new_refresh_token, "access_token": access_token}
     zoom_client_object = ZoomClient(configuration, logger)
-    zoom_client_object.secrets_storage.get_refresh_token = MagicMock(
-        return_value=old_refresh_token
-    )
+    zoom_client_object.secrets_storage.get_secrets = MagicMock(return_value=None)
     url = (
         AUTH_BASE_URL
         + f"authorization_code&code={zoom_client_object.authorization_code}"
@@ -77,20 +74,20 @@ def settings(requests_mock):
             {
                 "global_keys": [
                     {"id": "844424930334011"},
-                    {"id": "543528180028451862"},
+                    {"id": "543528180028451862"}
                 ],
                 "delete_keys": [
                     {"id": "844424930334011"},
-                    {"id": "543528180028451862"},
-                ],
+                    {"id": "543528180028451862"}
+                ]
             },
             {
                 "global_keys": [],
                 "delete_keys": [
                     {"id": "844424930334011"},
-                    {"id": "543528180028451862"},
-                ],
-            },
+                    {"id": "543528180028451862"}
+                ]
+            }
         )
     ],
 )
@@ -106,12 +103,15 @@ def test_delete_documents(
     :param storage_with_collection: objects documents dictionary.
     :param updated_storage_with_collection: updated objects documents dictionary.
     """
+    # Setup
     _, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
     deletion_sync_obj = DeletionSyncCommand(args)
     deletion_sync_obj.workplace_search_client.delete_documents = Mock()
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute and assert
     assert (
         deletion_sync_obj.delete_documents(deleted_ids, storage_with_collection)
         == updated_storage_with_collection
@@ -137,6 +137,7 @@ def test_collect_deleted_ids_for_users_positive(
     :param user_id_list: list of user_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     _, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -152,7 +153,11 @@ def test_collect_deleted_ids_for_users_positive(
         status_code=404,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_ids(user_id_list, USERS)
+
+    # Assert
     assert user_id_list == deletion_sync_obj.global_deletion_ids
 
 
@@ -178,6 +183,7 @@ def test_collect_deleted_ids_for_users_negative(
     :param user_id_list: list of user_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     config, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -193,7 +199,11 @@ def test_collect_deleted_ids_for_users_negative(
         status_code=200,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_ids(user_id_list, USERS)
+
+    # Assert
     assert [] == deletion_sync_obj.global_deletion_ids
 
 
@@ -216,6 +226,7 @@ def test_collect_deleted_roles_ids_positive(
     :param role_id_list: list of role_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     _, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -228,10 +239,14 @@ def test_collect_deleted_roles_ids_positive(
         "https://api.zoom.us/v2/roles/844424930334011",
         headers=headers,
         json=deletion_response,
-        status_code=300,
+        status_code=400,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
+
+    # Assert
     assert role_id_list == deletion_sync_obj.global_deletion_ids
 
 
@@ -257,6 +272,7 @@ def test_collect_deleted_roles_ids_negative(
     :param role_id_list: list of role_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     _, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -272,7 +288,11 @@ def test_collect_deleted_roles_ids_negative(
         status_code=200,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
+
+    # Assert
     assert [] == deletion_sync_obj.global_deletion_ids
 
 
@@ -295,6 +315,7 @@ def test_collect_deleted_ids_for_groups_positive(
     :param group_id_list: list of group_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     config, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -310,7 +331,11 @@ def test_collect_deleted_ids_for_groups_positive(
         status_code=404,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_ids(group_id_list, GROUPS)
+
+    # Assert
     assert group_id_list == deletion_sync_obj.global_deletion_ids
 
 
@@ -336,6 +361,7 @@ def test_collect_deleted_ids_for_groups_negative(
     :param group_id_list: list of group_id deleted from zoom.
     :param deletion_response: dictionary of mocked api response.
     """
+    # Setup
     _, _ = settings(requests_mock)
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
@@ -351,5 +377,9 @@ def test_collect_deleted_ids_for_groups_negative(
         status_code=200,
     )
     deletion_sync_obj.zoom_client.get_token()
+
+    # Execute
     deletion_sync_obj.collect_deleted_ids(group_id_list, GROUPS)
+
+    # Assert
     assert [] == deletion_sync_obj.global_deletion_ids

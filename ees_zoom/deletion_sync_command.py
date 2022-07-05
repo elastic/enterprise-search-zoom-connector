@@ -8,7 +8,6 @@
     Documents that were deleted in source will still be available in
     Elastic Enterprise Search until a full sync happens, or until this module is used.
 """
-from datetime import time
 
 import requests
 from iteration_utilities import unique_everseen
@@ -16,7 +15,7 @@ from iteration_utilities import unique_everseen
 from .base_command import BaseCommand
 from .constant import (BATCH_SIZE, GROUPS,
                        ROLES, USERS)
-from .utils import (get_current_time, retry,
+from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
@@ -37,7 +36,6 @@ class DeletionSyncCommand(BaseCommand):
         self.retry_count = config.get_value("retry_count")
         self.start_time = config.get_value("start_time")
         self.configuration_objects = config.get_value("objects")
-        self.ws_source = config.get_value("enterprise_search.source_id")
         self.end_time = get_current_time()
         self.global_deletion_ids = []
 
@@ -52,7 +50,6 @@ class DeletionSyncCommand(BaseCommand):
             for chunk in split_documents_into_equal_chunks(ids_list, BATCH_SIZE):
                 self.workplace_search_client.delete_documents(
                     document_ids=chunk,
-                    content_source_id=self.ws_source,
                 )
             document_id_index = 0
             size_of_collection = len(storage_with_collection["global_keys"])
@@ -64,12 +61,6 @@ class DeletionSyncCommand(BaseCommand):
                 document_id_index += 1
         return storage_with_collection
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
     def collect_deleted_ids(self, object_ids_list, object_type):
         """This function is used to collect document ids to be deleted from
         enterprise-search for users, and groups object.
@@ -79,47 +70,27 @@ class DeletionSyncCommand(BaseCommand):
         self.logger.info(
             f"Started collecting object_ids to be deleted from enterprise search for: {object_type}"
         )
-        object_id_index = 0
-        while object_id_index < len(object_ids_list):
+        for object_id in object_ids_list:
             try:
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                url = f"https://api.zoom.us/v2/{object_type}/{object_ids_list[object_id_index]}"
-                object_response = requests.get(url=url, headers=headers)
-                if (
-                    object_response.text and object_response.status_code == 404 or object_response.status_code == 400
-                ):
-                    self.global_deletion_ids.append(object_ids_list[object_id_index])
-                elif object_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                    continue
-                else:
-                    object_response.raise_for_status()
-                object_id_index += 1
-            except (
-                requests.exceptions.HTTPError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-            ) as exception:
-                self.logger.exception(
-                    f"Exception raised while performing deletion sync for {object_type} from Zoom: {exception}"
+                _ = self.zoom_client.get(
+                    end_point=f"{object_type}/{object_id}", key=object_type
                 )
-                raise exception
+            except requests.exceptions.HTTPError as HTTPException:
+                if HTTPException.__dict__["response"].status_code in [
+                    404,
+                    400,
+                ]:
+                    # Append the deleted documents to the global_deletion_ids list which will be iterated to ensure those documents are deleted from the Enterprise Search as well
+                    self.global_deletion_ids.append(object_id)
+                else:
+                    raise
             except Exception as exception:
                 self.logger.exception(
-                    f"Unknown error occurred while performing deletion sync for {object_type} from zoom : {exception}"
+                    f"Unknown error occurred while performing deletion sync for"
+                    f"{object_type} from zoom. Error: {exception}"
                 )
                 raise exception
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
     def collect_deleted_roles_ids(self, roles_ids_list):
         """This function is used to collect document ids to be deleted from
         enterprise-search for roles object.
@@ -128,52 +99,21 @@ class DeletionSyncCommand(BaseCommand):
         self.logger.info(
             f"Started collecting object_ids to be deleted from enterprise search for: {ROLES}"
         )
-        role_id_index = 0
-        while role_id_index < len(roles_ids_list):
+        for role_id in roles_ids_list:
             try:
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                url = f"https://api.zoom.us/v2/roles/{roles_ids_list[role_id_index]}"
-                role_response = requests.get(url=url, headers=headers)
-                if role_response.text and role_response.status_code == 300:
-                    self.global_deletion_ids.append(roles_ids_list[role_id_index])
-                elif role_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                    continue
+                _ = self.zoom_client.get(end_point=f"roles/{role_id}", key="privileges")
+            except requests.exceptions.HTTPError as HTTPException:
+                # Getting error code 400 but the zoom api documentation is suggesting error code 300
+                if HTTPException.__dict__["response"].status_code in [300, 400]:
+                    # Append the deleted documents to the global_deletion_ids list which will be iterated to ensure those documents are deleted from the Enterprise Search as well
+                    self.global_deletion_ids.append(role_id)
                 else:
-                    role_response.raise_for_status()
-                role_id_index += 1
-            except (
-                requests.exceptions.HTTPError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-            ) as exception:
-                self.logger.exception(
-                    f"Exception raised while performing deletion sync for {ROLES} from Zoom: {exception}"
-                )
-                raise exception
+                    raise
             except Exception as exception:
                 self.logger.exception(
-                    f"Unknown error occurred while performing deletion sync for {ROLES} from zoom : {exception}"
+                    f"Unknown error occurred while performing deletion sync for {ROLES} from zoom. Error: {exception}"
                 )
                 raise exception
-
-    def omitted_document(
-        self, document, deleted_ids_list, time_limit
-    ):
-        """This method will return object document list if object document is archived by the Zoom APIs.
-        :param document: dictionary of object document present in delete_keys of doc_id storage.
-        :param deleted_ids_list: list of ids for deleted objects ids.
-        :param time_limit: string of time-limit type.(ex: six_months_time or one_month_time)
-        :returns: it will return list of document dictionary if document is archived.
-        """
-        # This block will detect if the parent user of an object is deleted from Zoom or not.
-        if document["parent_id"] not in deleted_ids_list:
-            return [document]
-        return []
 
     def execute(self):
         """Runs the deletion sync logic"""
@@ -188,7 +128,6 @@ class DeletionSyncCommand(BaseCommand):
         for document in ids_collection["delete_keys"]:
             if document["type"] in [ROLES, GROUPS, USERS]:
                 delete_key_ids[document["type"]].append(document["id"])
-        self.zoom_client.get_token()
         if ROLES in self.configuration_objects and delete_key_ids[ROLES]:
             self.collect_deleted_roles_ids(delete_key_ids[ROLES])
         for object_type in [GROUPS, USERS]:
