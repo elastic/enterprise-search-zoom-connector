@@ -1,3 +1,9 @@
+#
+# Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+# or more contributor license agreements. Licensed under the Elastic License 2.0;
+# you may not use this file except in compliance with the Elastic License 2.0.
+#
+
 import logging
 import os
 import sys
@@ -37,8 +43,8 @@ def settings():
     return configuration, logger
 
 
-def test_get_token_when_valid_refresh_token_present(requests_mock):
-    """Test for get_token function call when valid refresh token is present in secrets storage.
+def test_ensure_token_valid_when_valid_refresh_token_present(requests_mock):
+    """Test for ensure_token_valid function call when valid refresh token is present in secrets storage.
     :param requests_mock: fixture for mocking requests calls.
     """
     new_refresh_token = "new_dummy_refresh_token"
@@ -59,14 +65,14 @@ def test_get_token_when_valid_refresh_token_present(requests_mock):
         json=json_response,
         status_code=200,
     )
-    zoom_client_object.get_token()
+    zoom_client_object.ensure_token_valid()
     assert zoom_client_object.access_token == access_token
     assert secrets_storage.get_refresh_token() == new_refresh_token
 
 
 @mock.patch("requests.get")
-def test_get_token_when_invalid_refresh_token_present(mock_request_get):
-    """Test for get_token function call when invalid refresh token is present in secrets storage.
+def test_ensure_token_valid_when_invalid_refresh_token_present(mock_request_get):
+    """Test for ensure_token_valid function call when invalid refresh token is present in secrets storage.
     :param mock_request_get: mock patch for requests.get calls.
     """
     old_refresh_token = "old_dummy_refresh_token"
@@ -82,11 +88,11 @@ def test_get_token_when_invalid_refresh_token_present(mock_request_get):
     mock_response[0].raise_for_status.side_effect = raise_for_status
     mock_request_get.return_value = mock_response
     with pytest.raises(Exception):
-        assert zoom_client_object.get_token()
+        assert zoom_client_object.ensure_token_valid()
 
 
-def test_get_token_when_refresh_token_absent(requests_mock):
-    """Test for get_token function call when refresh token is not present in secrets storage.
+def test_ensure_token_valid_when_refresh_token_absent(requests_mock):
+    """Test for ensure_token_valid function call when refresh token is not present in secrets storage.
     :param requests_mock: fixture for mocking requests calls.
     """
     if os.path.exists(SECRETS_JSON_PATH):
@@ -109,6 +115,6 @@ def test_get_token_when_refresh_token_absent(requests_mock):
         json=json_response,
         status_code=200,
     )
-    zoom_client_object.get_token()
+    zoom_client_object.ensure_token_valid()
     assert zoom_client_object.access_token == access_token
     assert secrets_storage.get_refresh_token() == new_refresh_token
