@@ -78,7 +78,6 @@ class ZoomClient:
         """
         invalid_field = ""
         reason = json_data.get("reason", "")
-
         if reason in ["Invalid Token!", "Invalid authorization code"]:
             if not self.is_token_generated:
                 self.is_token_generated = True
@@ -145,7 +144,6 @@ class ZoomClient:
             )
             json_data = json.loads(response.text)
             response.raise_for_status()
-
             if response and response.status_code == requests.codes.ok:
                 refresh_token = json_data["refresh_token"]
                 self.access_token = json_data["access_token"]
