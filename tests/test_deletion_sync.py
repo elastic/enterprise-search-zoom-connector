@@ -52,8 +52,8 @@ def settings(requests_mock):
     zoom_client_object = ZoomClient(configuration, logger)
     zoom_client_object.secrets_storage.get_secrets = MagicMock(return_value=None)
     url = (
-        AUTH_BASE_URL
-        + f"authorization_code&code={zoom_client_object.authorization_code}"
+        f"{AUTH_BASE_URL}"
+        f"authorization_code&code={zoom_client_object.authorization_code}"
         f"&redirect_uri={zoom_client_object.redirect_uri}"
     )
     headers = zoom_client_object.get_headers()
@@ -109,13 +109,10 @@ def test_delete_documents(
     args.config_file = CONFIG_FILE
     deletion_sync_obj = DeletionSyncCommand(args)
     deletion_sync_obj.workplace_search_client.delete_documents = Mock()
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute and assert
-    assert (
-        deletion_sync_obj.delete_documents(deleted_ids, storage_with_collection)
-        == updated_storage_with_collection
-    )
+    assert deletion_sync_obj.delete_documents(deleted_ids, storage_with_collection) == updated_storage_with_collection
 
 
 @pytest.mark.parametrize(
@@ -152,7 +149,7 @@ def test_collect_deleted_ids_for_users_positive(
         json=deletion_response,
         status_code=404,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_ids(user_id_list, USERS)
@@ -198,7 +195,7 @@ def test_collect_deleted_ids_for_users_negative(
         json=deletion_response,
         status_code=200,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_ids(user_id_list, USERS)
@@ -241,7 +238,7 @@ def test_collect_deleted_roles_ids_positive(
         json=deletion_response,
         status_code=400,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
@@ -287,7 +284,7 @@ def test_collect_deleted_roles_ids_negative(
         json=deletion_response,
         status_code=200,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_roles_ids(role_id_list)
@@ -330,7 +327,7 @@ def test_collect_deleted_ids_for_groups_positive(
         json=deletion_response,
         status_code=404,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_ids(group_id_list, GROUPS)
@@ -376,7 +373,7 @@ def test_collect_deleted_ids_for_groups_negative(
         json=deletion_response,
         status_code=200,
     )
-    deletion_sync_obj.zoom_client.get_token()
+    deletion_sync_obj.zoom_client.ensure_token_valid()
 
     # Execute
     deletion_sync_obj.collect_deleted_ids(group_id_list, GROUPS)
