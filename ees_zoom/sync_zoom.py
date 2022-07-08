@@ -206,29 +206,6 @@ class SyncZoom:
         self.queue.append_to_queue(groups_data)
         return groups_data
 
-    def fetch_channels_and_append_to_queue(self, partitioned_users_list):
-        """This method fetches the channels from Zoom server and
-        appends them to the shared queue
-        :param partitioned_users_list: list of users for which channels will be fetched.
-        :returns: list of channels documents.
-        """
-        fetched_documents = []
-        channel_schema = self.get_schema_fields(CHANNELS)
-        channels_object = ZoomChannels(
-            self.config,
-            self.logger,
-            self.zoom_client,
-            self.zoom_enterprise_search_mappings,
-        )
-        fetched_documents = channels_object.get_channels_details_documents(
-            users_data=partitioned_users_list,
-            channel_schema=channel_schema,
-            enable_permission=self.enable_permission,
-        )
-        channels_data = fetched_documents["data"]
-        self.queue.append_to_queue(channels_data)
-        return channels_data
-
     def fetch_recordings_and_append_to_queue(self, partitioned_users_list):
         """This method fetches the recordings from Zoom server and
         appends them to the shared queue
@@ -253,6 +230,29 @@ class SyncZoom:
         recording_data = fetched_documents["data"]
         self.queue.append_to_queue(recording_data)
         return recording_data
+
+    def fetch_channels_and_append_to_queue(self, partitioned_users_list):
+        """This method fetches the channels from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which channels will be fetched.
+        :returns: list of channels documents.
+        """
+        fetched_documents = []
+        channel_schema = self.get_schema_fields(CHANNELS)
+        channels_object = ZoomChannels(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = channels_object.get_channels_details_documents(
+            users_data=partitioned_users_list,
+            channel_schema=channel_schema,
+            enable_permission=self.enable_permission,
+        )
+        channels_data = fetched_documents["data"]
+        self.queue.append_to_queue(channels_data)
+        return channels_data
 
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
@@ -331,15 +331,15 @@ class SyncZoom:
                     documents_to_index.extend(
                         self.fetch_past_meetings_and_append_to_queue(meetings_object)
                     )
-                if CHANNELS in self.configuration_objects:
-                    documents_to_index.extend(
-                        self.fetch_channels_and_append_to_queue(partitioned_users_list)
-                    )
                 if RECORDINGS in self.configuration_objects:
                     documents_to_index.extend(
                         self.fetch_recordings_and_append_to_queue(
                             partitioned_users_list
                         )
+                    )
+                if CHANNELS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_channels_and_append_to_queue(partitioned_users_list)
                     )
         except Exception as exception:
             self.logger.error(
