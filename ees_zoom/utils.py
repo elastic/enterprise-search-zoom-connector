@@ -115,10 +115,37 @@ def get_current_time():
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
 
 
+def split_by_max_cumulative_length(documents, allowed_size):
+    """This method splits a list or dictionary into list based on allowed size limit.
+    :param documents: List or Dictionary to be partitioned into chunks
+    :param allowed_size: Maximum size allowed for indexing per request.
+    Returns:
+        list_of_chunks: List of list of dictionary containing the dictionaries to be indexed.
+    """
+    list_of_chunks = []
+    chunk = []
+    current_size = allowed_size
+    for document in documents:
+        document_size = len(str(document))
+        if document_size < current_size:
+            chunk.append(document)
+            current_size -= document_size
+        else:
+            if chunk:
+                list_of_chunks.append(chunk)
+            if document_size > allowed_size:
+                document["body"] = None
+                document_size = len(str(document))
+            chunk = [document]
+            current_size = allowed_size - document_size
+    list_of_chunks.append(chunk)
+    return list_of_chunks
+
+
 def is_within_time_range(document, time_range):
     """Check if document is created within time range or not.
     :param document: dictionary of document from doc_id.json delete_keys.
-    :param time_range: datetime object limit for given document type(ex: one_month_time or six_months_time).
+    :param time_range: datetime object limit for given document type(ex: one_month_time).
     :returns: boolean to check if document is created within time range or not.
     """
     return datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < time_range
