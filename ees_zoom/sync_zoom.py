@@ -8,13 +8,18 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import GROUPS, MEETINGS, PAST_MEETINGS, ROLES, USERS
+from .constant import (CHANNELS, GROUPS, MEETINGS, PAST_MEETINGS, RECORDINGS,
+                       ROLES, USERS)
 from .utils import split_list_into_buckets
+from .zoom_channels import ZoomChannels
 from .zoom_groups import ZoomGroups
 from .zoom_meetings import ZoomMeetings
 from .zoom_past_meetings import ZoomPastMeetings
+from .zoom_recordings import ZoomRecordings
 from .zoom_roles import ZoomRoles
 from .zoom_users import ZoomUsers
+
+MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
 
 
 class SyncZoom:
@@ -37,11 +42,9 @@ class SyncZoom:
         self.objects_time_range = objects_time_range
         self.queue = queue
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
-        self.ws_source = config.get_value("enterprise_search.source_id")
         self.configuration_objects = config.get_value("objects")
         self.enable_permission = config.get_value("enable_document_permission")
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
-        self.mapping_sheet_path = config.get_value("zoom.user_mapping")
 
     def get_schema_fields(self, document_name):
         """Returns the schema of all the include_fields or exclude_fields specified in the configuration file.
@@ -80,8 +83,8 @@ class SyncZoom:
             self.zoom_enterprise_search_mappings,
         )
         partitioned_users_lists = split_list_into_buckets(
-            users_object.get_users_list(),
-            self.zoom_sync_thread_count,
+            documents=users_object.get_users_list(),
+            total_buckets=self.zoom_sync_thread_count,
         )
         return partitioned_users_lists
 
@@ -100,11 +103,11 @@ class SyncZoom:
         )
         users_schema = self.get_schema_fields(USERS)
         fetched_documents = users_object.get_users_details_documents(
-            users_schema,
-            partitioned_users_list,
-            self.objects_time_range[USERS][0],
-            self.objects_time_range[USERS][1],
-            self.enable_permission,
+            users_schema=users_schema,
+            users_data=partitioned_users_list,
+            start_time=self.objects_time_range[USERS][0],
+            end_time=self.objects_time_range[USERS][1],
+            enable_permission=self.enable_permission,
         )
         users_data = fetched_documents["data"]
         self.queue.append_to_queue(users_data)
@@ -128,12 +131,12 @@ class SyncZoom:
             checkpoint_object = PAST_MEETINGS
             meetings_schema = {}
         fetched_documents = meetings_object.get_meetings_details_documents(
-            partitioned_users_list,
-            meetings_schema,
-            self.objects_time_range[checkpoint_object][0],
-            self.objects_time_range[checkpoint_object][1],
-            is_meetings_in_objects,
-            self.enable_permission,
+            users_data=partitioned_users_list,
+            meetings_schema=meetings_schema,
+            start_time=self.objects_time_range[checkpoint_object][0],
+            end_time=self.objects_time_range[checkpoint_object][1],
+            is_meetings_in_objects=is_meetings_in_objects,
+            enable_permission=self.enable_permission,
         )
         meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(meetings_data)
@@ -154,11 +157,11 @@ class SyncZoom:
         past_meetings_schema = self.get_schema_fields(PAST_MEETINGS)
         fetched_documents = []
         fetched_documents = past_meetings_object.get_past_meetings_details_documents(
-            meetings_object.meetings_past_meetings_list,
-            past_meetings_schema,
-            self.objects_time_range[PAST_MEETINGS][0],
-            self.objects_time_range[PAST_MEETINGS][1],
-            self.enable_permission,
+            meetings_data=meetings_object.meetings_past_meetings_list,
+            past_meetings_schema=past_meetings_schema,
+            start_time=self.objects_time_range[PAST_MEETINGS][0],
+            end_time=self.objects_time_range[PAST_MEETINGS][1],
+            enable_permission=self.enable_permission,
         )
         past_meetings_data = fetched_documents["data"]
         self.queue.append_to_queue(past_meetings_data)
@@ -178,9 +181,9 @@ class SyncZoom:
         )
         for roles in roles_list:
             fetched_documents = roles_object.get_roles_details_documents(
-                roles_schema,
-                roles,
-                self.enable_permission,
+                roles_schema=roles_schema,
+                roles_data=roles,
+                enable_permission=self.enable_permission,
             )
             roles_data = fetched_documents["data"]
             self.queue.append_to_queue(roles_data)
@@ -197,13 +200,69 @@ class SyncZoom:
         groups_object.set_groups_list()
         fetched_documents = []
         fetched_documents = groups_object.get_groups_details_documents(
-            groups_schema,
-            groups_object.groups_list,
-            self.enable_permission,
+            groups_schema=groups_schema,
+            groups_data=groups_object.groups_list,
+            enable_permission=self.enable_permission,
         )
         groups_data = fetched_documents["data"]
         self.queue.append_to_queue(groups_data)
         return groups_data
+
+    def fetch_recordings_and_append_to_queue(self, partitioned_users_list, should_append_to_queue):
+        """This method fetches the recordings from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which recordings will be fetched.
+        :param should_append_to_queue: boolean value to indicate if the fetched documents
+                                       should be appended to the queue or not.
+        :returns: list of recordings documents.
+        """
+        fetched_documents = []
+        recordings_schema = self.get_schema_fields(RECORDINGS)
+        recordings_object = ZoomRecordings(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = recordings_object.get_recordings_details_documents(
+            users_data=partitioned_users_list,
+            recordings_schema=recordings_schema,
+            start_time=self.objects_time_range[RECORDINGS][0],
+            end_time=self.objects_time_range[RECORDINGS][1],
+            enable_permission=self.enable_permission,
+        )
+        recording_data = fetched_documents["data"]
+        # skip append to queue operation to avoid indexing if method is called for deletion.
+        if should_append_to_queue:
+            self.queue.append_to_queue(recording_data)
+        return recording_data
+
+    def fetch_channels_and_append_to_queue(self, partitioned_users_list, should_append_to_queue):
+        """This method fetches the channels from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which channels will be fetched.
+        :param should_append_to_queue: boolean value to indicate if the fetched documents
+                                       should be appended to the queue or not.
+        :returns: list of channels documents.
+        """
+        fetched_documents = []
+        channel_schema = self.get_schema_fields(CHANNELS)
+        channels_object = ZoomChannels(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = channels_object.get_channels_details_documents(
+            users_data=partitioned_users_list,
+            channel_schema=channel_schema,
+            enable_permission=self.enable_permission,
+        )
+        channels_data = fetched_documents["data"]
+        # skip append to queue operation to avoid indexing if method is called for deletion.
+        if should_append_to_queue:
+            self.queue.append_to_queue(channels_data)
+        return channels_data
 
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
@@ -247,15 +306,19 @@ class SyncZoom:
                         self.fetch_groups_and_append_to_queue(groups_object)
                     )
 
-            elif parent_object == USERS:
-                if USERS in self.configuration_objects:
+            elif parent_object == USERS or parent_object == MULTITHREADED_OBJECTS_FOR_DELETION:
+                if USERS in self.configuration_objects and parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {USERS}."
                     )
                     documents_to_index.extend(
                         self.fetch_users_and_append_to_queue(partitioned_users_list)
                     )
-                if MEETINGS in self.configuration_objects or PAST_MEETINGS in self.configuration_objects:
+                if (
+                    parent_object != MULTITHREADED_OBJECTS_FOR_DELETION and (
+                        MEETINGS in self.configuration_objects or PAST_MEETINGS in self.configuration_objects
+                    )
+                ):
                     is_meetings_in_objects = False
                     if MEETINGS in self.configuration_objects:
                         is_meetings_in_objects = True
@@ -275,13 +338,33 @@ class SyncZoom:
                             is_meetings_in_objects,
                         )
                     )
-                if PAST_MEETINGS in self.configuration_objects:
+                if PAST_MEETINGS in self.configuration_objects and parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {PAST_MEETINGS}."
                     )
                     documents_to_index.extend(
                         self.fetch_past_meetings_and_append_to_queue(meetings_object)
                     )
+                should_append_to_queue = True
+                if parent_object == MULTITHREADED_OBJECTS_FOR_DELETION:
+                    should_append_to_queue = False
+                if RECORDINGS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_recordings_and_append_to_queue(
+                            partitioned_users_list,
+                            should_append_to_queue,
+                        )
+                    )
+                if CHANNELS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_channels_and_append_to_queue(
+                            partitioned_users_list,
+                            should_append_to_queue,
+                        )
+                    )
+                # return fetched documents directly without indexing if method is called for deletion.
+                if not should_append_to_queue:
+                    return documents_to_index
         except Exception as exception:
             self.logger.error(
                 f"{[threading.get_ident()]} Error while fetching objects. Error: {exception}"
