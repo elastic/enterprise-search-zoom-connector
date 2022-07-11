@@ -7,6 +7,7 @@
 import logging
 import os
 import sys
+import time
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -30,6 +31,9 @@ SECRETS_JSON_PATH = os.path.join(
 )
 
 AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
+REFRESH_TOKEN_FIELD = "zoom.refresh_token"
+ACCESS_TOKEN_FIELD = "zoom.access_token"
+EXPIRATION_TIME_FIELD = "zoom.access_token_expiry_time"
 
 
 def settings():
@@ -54,9 +58,13 @@ def test_ensure_token_valid_when_valid_refresh_token_present(requests_mock):
     config, logger = settings()
     zoom_client_object = ZoomClient(config, logger)
     secrets_storage = SecretsStorage(config, logger)
-    zoom_client_object.secrets_storage.get_refresh_token = MagicMock(
-        return_value=old_refresh_token
-    )
+    access_token_expiry_time = time.time() - 3500
+    secrets = {
+        REFRESH_TOKEN_FIELD: old_refresh_token,
+        ACCESS_TOKEN_FIELD: access_token,
+        EXPIRATION_TIME_FIELD: access_token_expiry_time,
+    }
+    zoom_client_object.secrets_storage.get_secrets = MagicMock(return_value=secrets)
     url = f"{AUTH_BASE_URL}refresh_token&refresh_token={old_refresh_token}"
     headers = zoom_client_object.get_headers()
     requests_mock.post(
@@ -67,7 +75,7 @@ def test_ensure_token_valid_when_valid_refresh_token_present(requests_mock):
     )
     zoom_client_object.ensure_token_valid()
     assert zoom_client_object.access_token == access_token
-    assert secrets_storage.get_refresh_token() == new_refresh_token
+    assert secrets_storage.get_secrets().get(REFRESH_TOKEN_FIELD) == new_refresh_token
 
 
 @mock.patch("requests.get")
@@ -76,11 +84,16 @@ def test_ensure_token_valid_when_invalid_refresh_token_present(mock_request_get)
     :param mock_request_get: mock patch for requests.get calls.
     """
     old_refresh_token = "old_dummy_refresh_token"
+    access_token = "dummy_access_token"
     config, logger = settings()
     zoom_client_object = ZoomClient(config, logger)
-    zoom_client_object.secrets_storage.get_refresh_token = MagicMock(
-        return_value=old_refresh_token
-    )
+    access_token_expiry_time = time.time() - 3500
+    secrets = {
+        REFRESH_TOKEN_FIELD: old_refresh_token,
+        ACCESS_TOKEN_FIELD: access_token,
+        EXPIRATION_TIME_FIELD: access_token_expiry_time,
+    }
+    zoom_client_object.secrets_storage.get_secrets = MagicMock(return_value=secrets)
     mock_response = [mock.Mock()]
     mock_response[0].status_code = 500
     mock_response[0].raise_for_status = mock.Mock()
@@ -117,4 +130,5 @@ def test_ensure_token_valid_when_refresh_token_absent(requests_mock):
     )
     zoom_client_object.ensure_token_valid()
     assert zoom_client_object.access_token == access_token
-    assert secrets_storage.get_refresh_token() == new_refresh_token
+    assert secrets_storage.get_secrets().get(REFRESH_TOKEN_FIELD) == new_refresh_token
+    assert secrets_storage.get_secrets().get(ACCESS_TOKEN_FIELD) == access_token
