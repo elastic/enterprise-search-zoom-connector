@@ -26,43 +26,11 @@ def test_execute(caplog):
     caplog.set_level("INFO")
     mock_response = {"id": "1234"}
     bootstrap_obj = BootstrapCommand(args)
-    bootstrap_obj.config._Configuration__configurations[
-        "enterprise_search.host_url"
-    ] = "dummy"
-    bootstrap_obj.workplace_search_client.create_content_source = Mock(
+    bootstrap_obj.workplace_search_client.workplace_search_client.create_content_source = Mock(
         return_value=mock_response
     )
     bootstrap_obj.execute()
-    body = {
-        "name": args.name,
-        "schema": {
-            "title": "text",
-            "body": "text",
-            "url": "text",
-            "created_at": "date",
-            "name": "text",
-            "description": "text",
-            "type": "text",
-            "size": "text",
-        },
-        "display": {
-            "title_field": "title",
-            "description_field": "description",
-            "url_field": "url",
-            "detail_fields": [
-                {"field_name": "created_at", "label": "Created At"},
-                {"field_name": "type", "label": "Type"},
-                {"field_name": "size", "label": "Size (in bytes)"},
-                {"field_name": "description", "label": "Description"},
-                {"field_name": "body", "label": "Content"},
-            ],
-            "color": "#000000",
-        },
-        "is_searchable": True,
-    }
-    bootstrap_obj.workplace_search_client.create_content_source.assert_called_with(
-        body=body
-    )
+    assert "Created ContentSource with ID 1234." in caplog.text
 
 
 def test_execute_with_user_argument(caplog):
@@ -75,7 +43,7 @@ def test_execute_with_user_argument(caplog):
     caplog.set_level("INFO")
     mock_response = {"id": "1234"}
     bootstrap_obj = BootstrapCommand(args)
-    bootstrap_obj.workplace_search_client.create_content_source = Mock(
+    bootstrap_obj.workplace_search_client.workplace_search_client.create_content_source = Mock(
         return_value=mock_response
     )
     bootstrap_obj.execute()

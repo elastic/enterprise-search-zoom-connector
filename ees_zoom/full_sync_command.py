@@ -34,7 +34,6 @@ class FullSyncCommand(BaseCommand):
         current_time = get_current_time()
         objects_time_range = {}
         thread_count = self.config.get_value("zoom_sync_thread_count")
-        self.zoom_client.get_token()
         for object_type in self.config.get_value("objects"):
             if object_type in [ROLES, GROUPS]:
                 continue

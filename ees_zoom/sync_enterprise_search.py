@@ -15,6 +15,8 @@ from .constant import BATCH_SIZE
 from .utils import (split_by_max_cumulative_length,
                     split_documents_into_equal_chunks)
 
+CONNECTION_TIMEOUT = 60
+
 
 class SyncEnterpriseSearch:
     """This class contains common logic for indexing to workplace search"""
@@ -41,25 +43,21 @@ class SyncEnterpriseSearch:
         :param documents: list of documents to be indexed
         """
         self.total_documents_found += len(documents)
-        try:
-            if documents:
-                documents_indexed = 0
-                responses = self.workplace_search_client.index_documents(
-                    content_source_id=self.ws_source,
-                    documents=documents,
-                )
-                for document in responses["results"]:
-                    if not document["errors"]:
-                        documents_indexed += 1
-                        self.indexed_documents_ids.add(document["id"])
-                    else:
-                        self.logger.error(
-                            f"Unable to index the document with id: {document['id']} Error {document['errors']}"
-                        )
-                self.total_document_indexed += documents_indexed
-        except Exception as exception:
-            self.logger.exception(f"Error while indexing the files. Error: {exception}")
-            raise exception
+        if documents:
+            documents_indexed = 0
+            responses = self.workplace_search_client.index_documents(
+                documents,
+                CONNECTION_TIMEOUT,
+            )
+            for document in responses["results"]:
+                if not document["errors"]:
+                    documents_indexed += 1
+                    self.indexed_documents_ids.add(document["id"])
+                else:
+                    self.logger.error(
+                        f"Unable to index the document with id: {document['id']} Error {document['errors']}"
+                    )
+            self.total_document_indexed += documents_indexed
 
     def perform_sync(self):
         """Pull documents from the queue and synchronize it to the Enterprise Search."""
@@ -92,12 +90,12 @@ class SyncEnterpriseSearch:
                 for document_list in split_documents_into_equal_chunks(
                     documents_to_index, BATCH_SIZE
                 ):
+                    for document in document_list:
+                        self.generated_documents_ids.add(document["id"])
                     for documents in split_by_max_cumulative_length(
                         document_list, self.max_allowed_bytes
                     ):
                         self.index_documents(documents)
-                    for document in document_list:
-                        self.generated_documents_ids.add(document["id"])
         except Exception as exception:
             self.logger.error(exception)
             self.is_error_ocurred = True

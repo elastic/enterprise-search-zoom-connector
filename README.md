@@ -585,17 +585,17 @@ objects:
 A UTC timestamp the connector uses to determine which objects to extract and sync from Zoom. Determines the *starting* point for a [full sync](#full-sync).
 
 ```yaml
-start_time: 2011-10-12T00:00:00Z (default)
+start_time: YYYY-MM-DDTHH:MM:SSZ
 ```
 
-Note: The default value of start_time would be the zoom app creation date-time: 2011-10-12T00:00:00Z.
+Note: If no value is passed, the default `start_time` value is set to when the Zoom app was created (in RFC 3339 date-time format).
 
 #### `end_time`
 
 A UTC timestamp the connector uses to determine which objects to extract and sync from Zoom. Determines the *stopping* point for a [full sync](#full-sync).
 
 ```yaml
-end_time: 2022-04-01T04:44:16Z
+end_time: YYYY-MM-DDTHH:MM:SSZ
 ```
 
 Note: The default value of end_time would be the current date-time in RFC-3339(%Y-%m-%dT%H:%M:%SZ) format.
@@ -612,6 +612,7 @@ The level or severity that determines the threshold for [logging](#log-errors-an
 ```yaml
 log_level: INFO
 ```
+By default, it is set to `INFO`.
 
 #### `retry_count`
 
@@ -620,6 +621,7 @@ The number of retries to perform when there is a server error. The connector app
 ```yaml
 retry_count: 3
 ```
+By default, it is set to `3`.
 #### `zoom_sync_thread_count`
 
 The number of threads the connector will run in parallel when fetching documents from the Zoom app. By default, the connector uses 5 threads.
@@ -645,6 +647,7 @@ Whether the connector should sync [document-level permissions (DLP)](#use-docume
 ```yaml
 enable_document_permission: Yes
 ```
+By default, it is set to `Yes` i.e. the connector will try to sync document-level permissions.
 #### `zoom.user_mapping`
 
 The pathname of the CSV file containing the user identity mappings for [document-level permissions (DLP)](#use-document-level-permissions-dlp).

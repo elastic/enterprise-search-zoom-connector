@@ -155,7 +155,7 @@ def test_zoom(settings):
     retry = 0
     while retry <= retry_count:
         try:
-            zoom_client.get_token()
+            zoom_client.ensure_token_valid()
             if zoom_client.access_token:
                 assert True
                 break
