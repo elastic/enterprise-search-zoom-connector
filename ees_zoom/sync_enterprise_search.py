@@ -90,12 +90,12 @@ class SyncEnterpriseSearch:
                 for document_list in split_documents_into_equal_chunks(
                     documents_to_index, BATCH_SIZE
                 ):
+                    for document in document_list:
+                        self.generated_documents_ids.add(document["id"])
                     for documents in split_by_max_cumulative_length(
                         document_list, self.max_allowed_bytes
                     ):
                         self.index_documents(documents)
-                    for document in document_list:
-                        self.generated_documents_ids.add(document["id"])
         except Exception as exception:
             self.logger.error(exception)
             self.is_error_ocurred = True
