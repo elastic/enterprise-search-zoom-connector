@@ -21,9 +21,6 @@ from .constant import (BATCH_SIZE, GROUPS, MEETINGS, PAST_MEETINGS,
 from .utils import (get_current_time, is_within_time_range,
                     split_documents_into_equal_chunks)
 
-MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
-ROLES_FOR_DELETION = "roles_for_deletion"
-
 
 class DeletionSyncCommand(BaseCommand):
     """DeletionSyncCommand class allows to remove instances of specific files.
