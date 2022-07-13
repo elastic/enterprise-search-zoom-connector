@@ -9,13 +9,10 @@ the list and will create documents from the fetched responses.
 import datetime
 import json
 import threading
-import time
 
 import requests
 
 from .constant import PAST_MEETINGS, RFC_3339_DATETIME_FORMAT
-from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomPastMeetings:
@@ -28,13 +25,6 @@ class ZoomPastMeetings:
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def get_past_meeting_details_from_meeting_id(
         self, meeting_id, start_time, end_time
     ):
@@ -47,37 +37,18 @@ class ZoomPastMeetings:
         :returns: dictionary if meeting_id is past_meeting.
         """
         try:
-            url = f"https://api.zoom.us/v2/past_meetings/{meeting_id}"
-            headers = {
-                "authorization": f"Bearer {self.zoom_client.access_token}",
-                "content-type": "application/json",
-            }
-            past_meeting_response = requests.get(url=url, headers=headers)
-            if past_meeting_response and past_meeting_response.status_code == 200:
-                response = json.loads(past_meeting_response.text)
-                past_meeting_details = response
-            elif past_meeting_response.status_code == 404:
-                return None
-            elif past_meeting_response.status_code == 400 and response["code"] in [
-                300,
-                200,
-            ]:
-                return None
-            elif past_meeting_response.status_code == 401:
-                return self.get_past_meeting_details_from_meeting_id(
-                    meeting_id, start_time, end_time
-                )
-            else:
-                past_meeting_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching past_meetings from Zoom: {exception}"
+            past_meeting_details = self.zoom_client.get(
+                end_point=f"past_meetings/{meeting_id}", key=PAST_MEETINGS
             )
-            raise exception
+        except requests.exceptions.HTTPError as HTTPException:
+            if HTTPException.__dict__["response"].status_code in [404, 400]:
+                response = json.loads(HTTPException.__dict__["response"].text)
+                self.logger.debug(
+                    f"Meeting with id {meeting_id} is skipped. "
+                    f"Error Code: {response['code']}, Reason: {response['message']}"
+                )
+                return None
+            raise
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching past_meetings from Zoom. : {exception}"
@@ -88,53 +59,27 @@ class ZoomPastMeetings:
         )
         if meeting_date >= start_time and meeting_date <= end_time:
             return past_meeting_details
-        else:
-            return None
+        return None
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def get_meeting_participants(self, past_meeting_id):
         """Method will get all the participants who attended the meeting.
         :param past_meeting_id: Meeting id for which participants are fetched.
         :returns: List of valid meetings.
         """
         participants_for_meeting = []
-        next_page_token = True
+
         try:
-            while next_page_token:
-                url = f"https://api.zoom.us/v2/report/meetings/{past_meeting_id}/participants?page_size=300"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                participants_response = requests.get(url=url, headers=headers)
-                if participants_response and participants_response.status_code == 200:
-                    response = json.loads(participants_response.text)
-                    next_page_token = response["next_page_token"]
-                    participants_for_meeting.extend(response["participants"])
-                elif participants_response.status_code == 404:
-                    return []
-                elif participants_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    participants_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching meeting participants from Zoom: {exception}"
+            participants_for_meeting = self.zoom_client.get(
+                end_point=f"report/meetings/{past_meeting_id}/participants?page_size=300",
+                key="participants",
+                is_paginated=True,
             )
-            raise exception
+        except requests.exceptions.HTTPError as HTTPException:
+            if HTTPException.__dict__["response"].status_code != 404:
+                self.logger.exception(
+                    f"Unknown error occurred while fetching meeting participants from Zoom. Error: {HTTPException}"
+                )
+                raise
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching meeting participants from Zoom: {exception}"

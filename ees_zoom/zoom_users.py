@@ -7,15 +7,9 @@
 the Zoom Server and will create documents from the fetched responses.
 """
 import datetime
-import json
 import threading
-import time
-
-import requests
 
 from .constant import RFC_3339_DATETIME_FORMAT, USERS
-from .utils import retry
-from .zoom_client import ZoomClient
 
 
 class ZoomUsers:
@@ -32,47 +26,15 @@ class ZoomUsers:
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def get_users_list(self):
         """The method will fetch all the available users from Zoom
         :returns users_list: list of total users fetched from Zoom
         """
         users_list = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = "https://api.zoom.us/v2/users?page_size=300"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                users_response = requests.get(url=url, headers=headers)
-                if users_response and users_response.status_code == 200:
-                    response = json.loads(users_response.text)
-                    next_page_token = response["next_page_token"]
-                    users_list.extend(response[USERS])
-                elif users_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    users_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching users from Zoom: {exception}"
+            users_list = self.zoom_client.get(
+                end_point="users?page_size=300", key=USERS, is_paginated=True
             )
-            raise exception
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching users from Zoom. : {exception}"

@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sys
+import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from ees_zoom.configuration import Configuration  # noqa
@@ -24,6 +25,10 @@ CONFIG_FILE = os.path.join(
     "zoom_connector.yml",
 )
 
+REFRESH_TOKEN_FIELD = "zoom.refresh_token"
+ACCESS_TOKEN_FIELD = "zoom.access_token"
+EXPIRATION_TIME_FIELD = "zoom.access_token_expiry_time"
+
 
 def settings():
     """This function loads configuration from the file and initialize logger.
@@ -36,45 +41,55 @@ def settings():
     return configuration, logger
 
 
-def test_get_refresh_token_when_json_file_absent():
+def test_get_secrets_when_json_file_absent():
     """test the fetching mechanism of secret storage data when secrets storage is unavailable."""
     config, logger = settings()
     if os.path.exists(SECRETS_JSON_PATH):
         os.remove(SECRETS_JSON_PATH)
     secrets_storage = SecretsStorage(config, logger)
-    actual_refresh_token = secrets_storage.get_refresh_token()
-    assert actual_refresh_token is None
+    secrets_storage = secrets_storage.get_secrets()
+    assert secrets_storage is None
 
 
-def test_set_refresh_token_with_json_absent():
+def test_set_secrets_with_json_absent():
     """test the storing mechanism of secret storage data when secrets storage is not available."""
     if os.path.exists(SECRETS_JSON_PATH):
         os.remove(SECRETS_JSON_PATH)
     config, logger = settings()
     secrets_storage = SecretsStorage(config, logger)
-    dummy_refresh_token = "abcabcabcABCABCABC"
-    secrets_storage.set_refresh_token(dummy_refresh_token)
+    access_token_expiry_time = time.time() + 3500
+    secrets = {
+        REFRESH_TOKEN_FIELD: "xyzabcaaaabbbb",
+        ACCESS_TOKEN_FIELD: "abcdfhghhshgg",
+        EXPIRATION_TIME_FIELD: access_token_expiry_time,
+    }
+    secrets_storage.set_secrets(secrets)
     with open(SECRETS_JSON_PATH, encoding="UTF-8") as secrets_store:
         secrets_data = json.load(secrets_store)
-    assert secrets_data["zoom.refresh_token"] == dummy_refresh_token
+    assert secrets_data["zoom.refresh_token"] == "xyzabcaaaabbbb" and secrets_data["zoom.access_token"] == "abcdfhghhshgg", secrets_data["zoom.access_token_expiry_time"] == access_token_expiry_time
 
 
-def test_set_refresh_token_with_json_present():
+def test_set_secrets_with_json_present():
     """test the storing mechanism of secret storage data when secrets storage is available."""
     config, logger = settings()
     secrets_storage = SecretsStorage(config, logger)
-    dummy_refresh_token = "abcabcabcABCABCABC"
-    secrets_storage.set_refresh_token(dummy_refresh_token)
+    access_token_expiry_time = time.time() + 3500
+    secrets = {
+        REFRESH_TOKEN_FIELD: "xyzabcaaaabbbb",
+        ACCESS_TOKEN_FIELD: "abcdfhghhshgg",
+        EXPIRATION_TIME_FIELD: access_token_expiry_time,
+    }
+    secrets_storage.set_secrets(secrets)
     with open(SECRETS_JSON_PATH, encoding="UTF-8") as secrets_store:
         secrets_data = json.load(secrets_store)
-    assert secrets_data["zoom.refresh_token"] == dummy_refresh_token
+    assert secrets_data["zoom.refresh_token"] == "xyzabcaaaabbbb" and secrets_data["zoom.access_token"] == "abcdfhghhshgg", secrets_data["zoom.access_token_expiry_time"] == access_token_expiry_time
 
 
-def test_get_refresh_token_from_json_file():
+def test_get_secrets_from_json_file():
     """test the fetching mechanism of secret storage data when secrets storage is available."""
     config, logger = settings()
     secrets_storage = SecretsStorage(config, logger)
-    actual_refresh_token = secrets_storage.get_refresh_token()
+    secrets_storage_data = secrets_storage.get_secrets()
     with open(SECRETS_JSON_PATH, encoding="UTF-8") as secrets_store:
         secrets_data = json.load(secrets_store)
-    assert secrets_data["zoom.refresh_token"] == actual_refresh_token
+    assert secrets_data == secrets_storage_data
