@@ -19,7 +19,9 @@ CONFIG_FILE = os.path.join(
 
 
 def test_execute(caplog):
-    """Test execute method in Bootstrap file creates a content source in the Enterprise Search."""
+    """Test execute method in Bootstrap file creates a content source in the Enterprise Search.
+    :param caplog: records the attributes from current stage.
+    """
     args = argparse.Namespace()
     args.name = "dummy"
     args.config_file = CONFIG_FILE

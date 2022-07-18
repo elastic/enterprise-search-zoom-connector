@@ -34,7 +34,7 @@ class ZoomPastMeetings:
         :param meeting_id: string of the meeting ID.
         :param start_time: datetime object for lower limit for data fetching.
         :param end_time: datetime object for upper limit for data fetching.
-        :returns: Dictionary if meeting_id is past_meeting.
+        :returns: dictionary if meeting_id is past_meeting.
         """
         try:
             past_meeting_details = self.zoom_client.get(
@@ -122,7 +122,7 @@ class ZoomPastMeetings:
         :param start_time: datetime object for lower limit for data fetching.
         :param end_time: datetime object for upper limit for data fetching.
         :param enable_permission: boolean to check if permission sync is enabled or not.
-        :returns: Dictionary containing type of data along with the data.
+        :returns: dictionary containing type of data along with the data.
         """
         try:
             meeting_type_enum_to_name_mapping = {

@@ -45,7 +45,7 @@ class SyncZoom:
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
 
     def get_schema_fields(self, document_name):
-        """Returns the schema of all the include_fields or exclude_fields specified in the configuration file.
+        """Returns the schema of all the include fields or exclude fields specified in the configuration file.
         :param document_name: Document name from users.
         Returns:
             schema: Included and excluded fields schema
@@ -257,7 +257,8 @@ class SyncZoom:
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
         shared queue and it returns list of locally stored details of documents fetched.
-        :param parent_object: Parent object name (ex. roles or users)
+        :param parent_object: Parent object name.(ex.: ROLES or USERS(for indexing) and ROLES_FOR_DELETION or
+            MULTITHREADED_OBJECTS_FOR_DELETION(for deletion))
         :param partitioned_users_list: list of dictionaries where each dictionary contains details fetched for
         a user from Zoom
         :returns: list of dictionary containing the properties (id, type, parent_id, created_at) of
