@@ -18,6 +18,9 @@ from .utils import retry
 
 ZOOM_AUTH_BASE_URL = "https://zoom.us/oauth/token?grant_type="
 ZOOM_BASE_URL = "https://api.zoom.us/v2/"
+REFRESH_TOKEN_FIELD = "zoom.refresh_token"
+ACCESS_TOKEN_FIELD = "zoom.access_token"
+EXPIRATION_TIME_FIELD = "zoom.access_token_expiry_time"
 
 
 class AccessTokenGenerationException(Exception):
@@ -46,6 +49,7 @@ class ZoomClient:
         self.logger = logger
         self.config_file_path = config.file_name
         self.access_token_expiration = time.time()
+        self.is_token_generated = False
 
     def get_headers(self):
         """generates header to fetch refresh token from zoom.
@@ -74,7 +78,6 @@ class ZoomClient:
         """
         invalid_field = ""
         reason = json_data.get("reason", "")
-        refresh_token = self.secrets_storage.get_refresh_token()
         if reason in ["Invalid Token!", "Invalid authorization code"]:
             if not self.is_token_generated:
                 self.is_token_generated = True
@@ -84,7 +87,12 @@ class ZoomClient:
                 self.ensure_token_valid()
                 return
             invalid_field = "zoom.authorization_code"
-            self.secrets_storage.set_refresh_token(refresh_token)
+            secrets = {
+                REFRESH_TOKEN_FIELD: "",
+                ACCESS_TOKEN_FIELD: "",
+                EXPIRATION_TIME_FIELD: "",
+            }
+            self.secrets_storage.set_secrets(secrets)
         elif reason == "Invalid request : Redirect URI mismatch.":
             invalid_field = "zoom.redirect_uri"
         else:
@@ -105,16 +113,26 @@ class ZoomClient:
         )
     )
     def ensure_token_valid(self):
-        """This module generates access token and refresh token using stored refresh token. If refresh token is not stored then uses
-        authorization code."""
+        """This module generates access token and refresh token using stored refresh token.
+        If refresh token is not stored then uses authorization code."""
         lock.acquire()
-        if time.time() < self.access_token_expiration:
+        secrets = self.secrets_storage.get_secrets()
+        refresh_token = ""
+
+        if secrets:
+            self.access_token_expiration = secrets.get(EXPIRATION_TIME_FIELD, "")
+            refresh_token = secrets.get(REFRESH_TOKEN_FIELD, "")
+
+        if self.access_token_expiration and time.time() < self.access_token_expiration:
+            self.is_token_generated = False
+            self.access_token = secrets.get(ACCESS_TOKEN_FIELD, "")
             lock.release()
             return
+
         self.logger.info(
             f"Generating the access token and updating refresh token for the client ID: {self.client_id}..."
         )
-        refresh_token = self.secrets_storage.get_refresh_token()
+
         if refresh_token and len(refresh_token):
             url = f"{ZOOM_AUTH_BASE_URL}refresh_token&refresh_token={refresh_token}"
         else:
@@ -130,7 +148,12 @@ class ZoomClient:
                 refresh_token = json_data["refresh_token"]
                 self.access_token = json_data["access_token"]
                 self.access_token_expiration = time.time() + 3500
-                self.secrets_storage.set_refresh_token(refresh_token)
+                secrets = {
+                    REFRESH_TOKEN_FIELD: refresh_token,
+                    ACCESS_TOKEN_FIELD: self.access_token,
+                    EXPIRATION_TIME_FIELD: self.access_token_expiration,
+                }
+                self.secrets_storage.set_secrets(secrets)
         except requests.exceptions.HTTPError as http_error:
             if response.status_code in [400, 401]:
                 self.handle_4xx_error(json_data, http_error)
@@ -179,16 +202,17 @@ class ZoomClient:
                     next_page_token = (
                         response.get("next_page_token") if is_paginated else None
                     )
-                elif key == "privileges" and response.status_code == 300:
+                # Getting error code 400 but the zoom api documentation is suggesting error code 300
+                elif key == "privileges" and response.status_code in [300, 400]:
                     raise requests.exceptions.HTTPError(response=response)
                 elif response.status_code == 401:
                     self.ensure_token_valid()
                 else:
                     response.raise_for_status()
         except (
+            requests.exceptions.HTTPError,
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
-            requests.exceptions.HTTPError,
         ) as exception:
             self.logger.exception(
                 f"HTTP Error occurred while fetching response for {end_point} "

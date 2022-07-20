@@ -8,9 +8,10 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import (GROUPS, MEETINGS, PAST_MEETINGS, RECORDINGS,
+from .constant import (CHANNELS, GROUPS, MEETINGS, PAST_MEETINGS, RECORDINGS,
                        ROLES, USERS)
 from .utils import split_list_into_buckets
+from .zoom_channels import ZoomChannels
 from .zoom_groups import ZoomGroups
 from .zoom_meetings import ZoomMeetings
 from .zoom_past_meetings import ZoomPastMeetings
@@ -44,7 +45,7 @@ class SyncZoom:
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
 
     def get_schema_fields(self, document_name):
-        """Returns the schema of all the include_fields or exclude_fields specified in the configuration file.
+        """Returns the schema of all the include fields or exclude fields specified in the configuration file.
         :param document_name: Document name from users.
         Returns:
             schema: Included and excluded fields schema
@@ -230,10 +231,34 @@ class SyncZoom:
         self.queue.append_to_queue(recording_data)
         return recording_data
 
+    def fetch_channels_and_append_to_queue(self, partitioned_users_list):
+        """This method fetches the channels from Zoom server and
+        appends them to the shared queue
+        :param partitioned_users_list: list of users for which channels will be fetched.
+        :returns: list of channels documents.
+        """
+        fetched_documents = []
+        channel_schema = self.get_schema_fields(CHANNELS)
+        channels_object = ZoomChannels(
+            self.config,
+            self.logger,
+            self.zoom_client,
+            self.zoom_enterprise_search_mappings,
+        )
+        fetched_documents = channels_object.get_channels_details_documents(
+            users_data=partitioned_users_list,
+            channel_schema=channel_schema,
+            enable_permission=self.enable_permission,
+        )
+        channels_data = fetched_documents["data"]
+        self.queue.append_to_queue(channels_data)
+        return channels_data
+
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
         shared queue and it returns list of locally stored details of documents fetched.
-        :param parent_object: Parent object name (ex. roles or users)
+        :param parent_object: Parent object name.(ex.: ROLES or USERS(for indexing) and ROLES_FOR_DELETION or
+            MULTITHREADED_OBJECTS_FOR_DELETION(for deletion))
         :param partitioned_users_list: list of dictionaries where each dictionary contains details fetched for
         a user from Zoom
         :returns: list of dictionary containing the properties (id, type, parent_id, created_at) of
@@ -312,6 +337,10 @@ class SyncZoom:
                         self.fetch_recordings_and_append_to_queue(
                             partitioned_users_list
                         )
+                    )
+                if CHANNELS in self.configuration_objects:
+                    documents_to_index.extend(
+                        self.fetch_channels_and_append_to_queue(partitioned_users_list)
                     )
         except Exception as exception:
             self.logger.error(
