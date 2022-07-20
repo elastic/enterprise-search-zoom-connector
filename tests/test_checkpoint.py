@@ -25,7 +25,10 @@ CHECKPOINT_PATH = os.path.join(
 
 
 def settings():
-    """This function loads configuration from the file and returns it along with retry_count setting."""
+    """This function loads configuration from the file and initialize logger.
+    :returns configuration: Configuration instance
+    :returns logger: Logger instance
+    """
     configuration = Configuration(
         os.path.join(
             os.path.join(os.path.dirname(__file__), "config"),
@@ -72,7 +75,11 @@ def test_set_checkpoint_when_checkpoint_file_available():
 def test_set_checkpoint_when_checkpoint_file_not_available(
     index_type, expected_time, current_time, obj_type
 ):
-    """Test set correct time in checkpoint.json file when checkpoint.json file is not available."""
+    """Test set correct time in checkpoint.json file when checkpoint.json file is not available.
+    :param index_type: Incremental or Full-sync Indexing.
+    :param expected_time: expected time value when checkpoint file is not available.
+    :param obj_type: object name for which checkpoint will be fetch.
+    """
     configs, logger = settings()
     checkpoint_obj = Checkpoint(configs, logger)
     checkpoint_obj.config._Configuration__configurations["end_time"] = expected_time
