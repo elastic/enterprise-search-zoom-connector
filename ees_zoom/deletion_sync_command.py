@@ -174,7 +174,6 @@ class DeletionSyncCommand(BaseCommand):
         storage_with_collection = self.local_storage.load_storage()
 
         time_range_limit_objects = [MEETINGS, PAST_MEETINGS]
-        # collecting the time range limit objects ids after refreshing the local storage.
         for document in storage_with_collection["delete_keys"]:
             if document["type"] in time_range_limit_objects:
                 delete_key_ids[document["type"]].append(
