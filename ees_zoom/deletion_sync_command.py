@@ -9,16 +9,13 @@
     Elastic Enterprise Search until a full sync happens, or until this module is used.
 """
 
-from datetime import datetime
-
 import requests
-from dateutil.relativedelta import relativedelta
 from iteration_utilities import unique_everseen
 
 from .base_command import BaseCommand
 from .constant import (BATCH_SIZE, GROUPS, MEETINGS, PAST_MEETINGS,
-                       RFC_3339_DATETIME_FORMAT, ROLES, USERS)
-from .utils import (get_current_time, is_within_time_range,
+                       ROLES, USERS)
+from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
 
@@ -151,51 +148,6 @@ class DeletionSyncCommand(BaseCommand):
             if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
                 self.global_deletion_ids.append(str(document["id"]))
 
-    def omitted_document(self, document, deleted_ids_list):
-        """This method will return object document list if object document is archived by the Zoom APIs.
-        :param document: dictionary of object document present in delete_keys of doc_id storage.
-        :param deleted_ids_list: list of ids for deleted objects ids.
-        :returns: it will return list of document dictionary if document is archived.
-        """
-        # This block will detect if the parent user of an object is deleted from Zoom or not.
-        if document["parent_id"] not in deleted_ids_list:
-            return [document]
-        return []
-
-    def refresh_storage(self, deleted_ids_list):
-        """This method is used to refresh the ids stored in doc_id.json file.
-        It will omit the documents from the delete_keys of doc_id.json file
-        for the time restricted objects if they can't be fetched from the Zoom API endpoints and
-        it will return updated storage collection of of doc_id.json file.
-        :param deleted_ids_list: list of ids for deleted objects ids.
-        :returns: storage collection of of doc_id.json file.
-        """
-        storage_with_collection = self.local_storage.load_storage()
-        # meetings and past_meetings objects older than last month can't be fetched from the Zoom API
-        one_month_time = datetime.strptime(
-            get_current_time(),
-            RFC_3339_DATETIME_FORMAT,
-        ) + relativedelta(months=-1, days=+2)
-        documents_list_to_omit = []
-        for document in storage_with_collection["delete_keys"]:
-            if document["type"] in [PAST_MEETINGS, MEETINGS] and is_within_time_range(
-                document, one_month_time
-            ):
-                documents_list_to_omit.extend(
-                    self.omitted_document(
-                        document,
-                        deleted_ids_list,
-                    )
-                )
-
-        for document in documents_list_to_omit:
-            storage_with_collection["delete_keys"].remove(document)
-            storage_with_collection["global_keys"].remove(document)
-
-        self.local_storage.update_storage(storage_with_collection)
-
-        return storage_with_collection
-
     def execute(self):
         """Runs the deletion sync logic"""
         logger = self.logger
@@ -219,7 +171,7 @@ class DeletionSyncCommand(BaseCommand):
             ):
                 self.collect_deleted_ids(delete_key_ids[object_type], object_type)
 
-        storage_with_collection = self.refresh_storage(self.global_deletion_ids)
+        storage_with_collection = self.local_storage.load_storage()
 
         time_range_limit_objects = [MEETINGS, PAST_MEETINGS]
         # collecting the time range limit objects ids after refreshing the local storage.
