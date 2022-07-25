@@ -19,7 +19,7 @@ from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
 # few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
-TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
+TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS]
 
 
 class DeletionSyncCommand(BaseCommand):
