@@ -18,6 +18,9 @@ from .constant import (BATCH_SIZE, GROUPS, MEETINGS, PAST_MEETINGS,
 from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
+# few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
+TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
+
 
 class DeletionSyncCommand(BaseCommand):
     """DeletionSyncCommand class allows to remove instances of specific files.
@@ -173,9 +176,8 @@ class DeletionSyncCommand(BaseCommand):
 
         storage_with_collection = self.local_storage.load_storage()
 
-        time_range_limit_objects = [MEETINGS, PAST_MEETINGS]
         for document in storage_with_collection["delete_keys"]:
-            if document["type"] in time_range_limit_objects:
+            if document["type"] in TIME_RANGE_LIMIT_OBJECTS:
                 delete_key_ids[document["type"]].append(
                     document["parent_id"]
                     if document["type"] == PAST_MEETINGS
