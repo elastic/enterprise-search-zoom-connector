@@ -186,12 +186,15 @@ class DeletionSyncCommand(BaseCommand):
 
         for object_type in [MEETINGS, PAST_MEETINGS]:
             if object_type in self.configuration_objects and delete_key_ids[object_type]:
-                self.collect_deleted_ids(
-                    delete_key_ids[MEETINGS], MEETINGS
-                ) if object_type == MEETINGS else self.collect_past_deleted_meetings(
-                    delete_key_ids[PAST_MEETINGS],
-                    storage_with_collection["delete_keys"],
-                )
+                if object_type == MEETINGS:
+                    self.collect_deleted_ids(
+                        delete_key_ids[MEETINGS], MEETINGS
+                    )
+                else:
+                    self.collect_past_deleted_meetings(
+                        delete_key_ids[PAST_MEETINGS],
+                        storage_with_collection["delete_keys"],
+                    )
 
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(
