@@ -13,10 +13,13 @@ import requests
 from iteration_utilities import unique_everseen
 
 from .base_command import BaseCommand
-from .constant import (BATCH_SIZE, GROUPS,
+from .constant import (BATCH_SIZE, GROUPS, MEETINGS, PAST_MEETINGS,
                        ROLES, USERS)
 from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
+
+# few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
+TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS]
 
 
 class DeletionSyncCommand(BaseCommand):
@@ -60,7 +63,7 @@ class DeletionSyncCommand(BaseCommand):
 
     def collect_deleted_ids(self, object_ids_list, object_type):
         """This function is used to collect document ids to be deleted from
-        enterprise-search for users, and groups object.
+        enterprise-search for users, groups, and meetings object.
         :param object_ids_list: object_ids list currently present in enterprise-search.
         :param object_type: different object type like users, meetings and groups object.
         """
@@ -112,6 +115,42 @@ class DeletionSyncCommand(BaseCommand):
                 )
                 raise exception
 
+    def collect_past_deleted_meetings(self, past_meetings_ids_list, delete_keys_list):
+        """This function is used to collect document ids to be deleted from
+        enterprise-search for past_meetings object.
+        :param past_meetings_ids_list: list of documents ids for past_meetings object
+                                       which are present in enterprise-search.
+        :param delete_keys_list: list of dictionary for delete_keys in local storage.
+        """
+        self.logger.info(
+            f"Started collecting object_ids to be deleted from enterprise search for: {PAST_MEETINGS}"
+        )
+        past_meetings_deletion_ids_list = []
+        for past_meeting_id in past_meetings_ids_list:
+            try:
+                _ = self.zoom_client.get(end_point=f"past_meetings/{past_meeting_id}", key=PAST_MEETINGS)
+            except requests.exceptions.HTTPError as HTTPException:
+                if HTTPException.__dict__[
+                    "response"
+                ].status_code in [
+                    404,
+                    400,
+                ]:
+                    # Append the deleted documents to the global_deletion_ids list which will be iterated to ensure those documents are deleted from the Enterprise Search as well
+                    past_meetings_deletion_ids_list.append(past_meeting_id)
+                else:
+                    raise HTTPException
+            except Exception as exception:
+                self.logger.exception(
+                    f"Unknown error occurred while performing deletion sync for"
+                    f"{PAST_MEETINGS} from zoom. Error: {exception}"
+                )
+                raise exception
+
+        for document in delete_keys_list:
+            if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
+                self.global_deletion_ids.append(str(document["id"]))
+
     def execute(self):
         """Runs the deletion sync logic"""
         logger = self.logger
@@ -121,6 +160,8 @@ class DeletionSyncCommand(BaseCommand):
             USERS: [],
             ROLES: [],
             GROUPS: [],
+            MEETINGS: [],
+            PAST_MEETINGS: [],
         }
         for document in ids_collection["delete_keys"]:
             if document["type"] in [ROLES, GROUPS, USERS]:
@@ -134,6 +175,27 @@ class DeletionSyncCommand(BaseCommand):
                 self.collect_deleted_ids(delete_key_ids[object_type], object_type)
 
         storage_with_collection = self.local_storage.load_storage()
+
+        for document in storage_with_collection["delete_keys"]:
+            if document["type"] in TIME_RANGE_LIMIT_OBJECTS:
+                delete_key_ids[document["type"]].append(
+                    document["parent_id"]
+                    if document["type"] == PAST_MEETINGS
+                    else document["id"]
+                )
+
+        for object_type in [MEETINGS, PAST_MEETINGS]:
+            if object_type in self.configuration_objects and delete_key_ids[object_type]:
+                if object_type == MEETINGS:
+                    self.collect_deleted_ids(
+                        delete_key_ids[MEETINGS], MEETINGS
+                    )
+                else:
+                    self.collect_past_deleted_meetings(
+                        delete_key_ids[PAST_MEETINGS],
+                        storage_with_collection["delete_keys"],
+                    )
+
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(
                 list(unique_everseen(self.global_deletion_ids)),
