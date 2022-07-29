@@ -40,9 +40,9 @@ def test_start_producer(mock1, mock2):
     full = FullSyncCommand(args)
     queue = ConnectorQueue(logger)
     mock1.return_value = [MagicMock()]
-    full.create_jobs = Mock()
-    full.create_jobs.return_value = MagicMock()
-    full.zoom_client.get_token = Mock()
+    full.create_and_execute_jobs = Mock()
+    full.create_and_execute_jobs.return_value = MagicMock()
+    full.zoom_client.ensure_token_valid = Mock()
     mock2.return_value = MagicMock()
     full.start_producer(queue)
     time_independent_objects = ["roles", "groups"]

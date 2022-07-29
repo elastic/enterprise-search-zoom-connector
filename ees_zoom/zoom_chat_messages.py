@@ -7,15 +7,11 @@
 the all_chat_access list and will create documents from the fetched responses.
 """
 import datetime
-import json
 import threading
-import time
 
-import requests
 from dateutil.relativedelta import relativedelta
 
 from .constant import CHATS, RFC_3339_DATETIME_FORMAT
-from .utils import retry
 
 
 class ZoomChatMessages:
@@ -53,12 +49,6 @@ class ZoomChatMessages:
         end_time = end_time.strftime(RFC_3339_DATETIME_FORMAT)
         return start_time, end_time
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
     def get_chats_from_user_id(self, user_id, start_time, end_time):
         """This method is responsible to fetch chats initiated by the user id, which are in range of past
         six months.
@@ -68,38 +58,14 @@ class ZoomChatMessages:
         :returns: list of dictionary containing chats of the user.
         """
         user_chats = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = (
-                    f"https://api.zoom.us/v2/chat/users/{user_id}/messages?page_size=300&search_key=%20"
-                    f"&search_type=message&from={start_time}&to={end_time}"
-                )
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                chats_response = requests.get(url=url, headers=headers)
-                if chats_response and chats_response.status_code == 200:
-                    response = json.loads(chats_response.text)
-                    next_page_token = response["next_page_token"]
-                    user_chats.extend(response["messages"])
-                elif chats_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    chats_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching chats from Zoom: {exception}"
+            url = (
+                f"chat/users/{user_id}/messages?page_size=300&search_key=%20"
+                f"&search_type=message&from={start_time}&to={end_time}"
             )
-            raise exception
+            user_chats = self.zoom_client.get(
+                end_point=url, key="messages", is_paginated=True
+            )
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching chats from Zoom: {exception}"

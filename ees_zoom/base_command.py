@@ -19,9 +19,8 @@ except ImportError:
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from elastic_enterprise_search import WorkplaceSearch
-
 from .configuration import Configuration
+from .enterprise_search_wrapper import EnterpriseSearchWrapper
 from .local_storage import LocalStorage
 from .zoom_client import ZoomClient
 
@@ -48,7 +47,7 @@ class BaseCommand:
         """
         log_level = self.config.get_value("log_level")
         logger = logging.getLogger(__name__)
-        logger.propagate = False
+        logger.propagate = True
         logger.setLevel(log_level)
 
         handler = logging.StreamHandler()
@@ -62,23 +61,8 @@ class BaseCommand:
 
     @cached_property
     def workplace_search_client(self):
-        """Get the workplace search client instance for the running command.
-        Host and api key are taken from configuration file, if
-        a user was provided when running command, then basic auth
-        will be used instead.
-        """
-        args = self.args
-        host = self.config.get_value("enterprise_search.host_url")
-
-        if hasattr(args, "user") and args.user:
-            return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=(args.user, args.password)
-            )
-        else:
-            return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources",
-                http_auth=self.config.get_value("enterprise_search.api_key"),
-            )
+        """Get the workplace search custom client instance for the running command."""
+        return EnterpriseSearchWrapper(self.logger, self.config, self.args)
 
     @cached_property
     def zoom_enterprise_search_mappings(self):
@@ -116,7 +100,7 @@ class BaseCommand:
         """Get the Zoom client instance for the running command."""
         return ZoomClient(self.config, self.logger)
 
-    def create_jobs(self, thread_count, func, args, iterable_list):
+    def create_and_execute_jobs(self, thread_count, func, args, iterable_list):
         """Apply async calls using multithreading to the targeted function
         :param thread_count: Total number of threads to be spawned
         :param func: The target function on which the async calls would be made

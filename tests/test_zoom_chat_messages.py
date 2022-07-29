@@ -19,9 +19,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 from ees_zoom.configuration import Configuration  # noqa
-from ees_zoom.constant import RFC_3339_DATETIME_FORMAT # noqa
-from ees_zoom.zoom_chat_messages import ZoomChatMessages # noqa
-from ees_zoom.zoom_client import ZoomClient # noqa
+from ees_zoom.constant import RFC_3339_DATETIME_FORMAT  # noqa
+from ees_zoom.zoom_chat_messages import ZoomChatMessages  # noqa
+from ees_zoom.zoom_client import ZoomClient  # noqa
 
 CONFIG_FILE = os.path.join(
     os.path.join(os.path.dirname(__file__), "config"),
@@ -68,7 +68,7 @@ def test_get_chats_details_documents_positive(mock_request_get):
     """Test for generating chats documents, generated from data fetched from Zoom.
     :param mock_request_get: mock patch for requests.get calls.
     """
-
+    # Setup
     chats_messages_object = create_chats_messages_object()
     dummy_users_data = ["dummy_id_1"]
     dummy_chats_data_with_next_page_token = {
@@ -151,6 +151,8 @@ def test_get_chats_details_documents_positive(mock_request_get):
     mock_response[1].status_code = 200
     mock_response[1].text = dummy_chats_data_without_next_page_token
     mock_request_get.side_effect = mock_response
+
+    # Execute
     response = chats_messages_object.get_chats_details_documents(
         dummy_users_data,
         CHATS_SCHEMA,
@@ -158,6 +160,8 @@ def test_get_chats_details_documents_positive(mock_request_get):
         end_time,
         enable_permission,
     )
+
+    # Assert
     assert response["type"] == CHATS
     assert response["data"] == expected_response
 
@@ -167,6 +171,7 @@ def test_get_chats_details_documents_negative(mock_request_get):
     """test case where Zoom is down
     :param mock_request_get: mock patch for requests.get calls.
     """
+    # Setup
     dummy_users_data = ["dummy_user1"]
     start_time = datetime.datetime.strptime(
         "2020-05-11T06:20:41Z", RFC_3339_DATETIME_FORMAT
@@ -182,6 +187,8 @@ def test_get_chats_details_documents_negative(mock_request_get):
     raise_for_status = requests.exceptions.HTTPError
     mock_response.raise_for_status.side_effect = raise_for_status
     mock_request_get.return_value = mock_response
+
+    # Execute and assert
     with pytest.raises(BaseException):
         chats_messages_object.get_chats_details_documents(
             dummy_users_data,
