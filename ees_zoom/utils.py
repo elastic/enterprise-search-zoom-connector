@@ -16,6 +16,7 @@ from .constant import RFC_3339_DATETIME_FORMAT
 
 class RetryCountExceededException(Exception):
     """Exception raised when retry for api call exceeds.
+
     Attributes:
         message -- explanation of the error
     """
