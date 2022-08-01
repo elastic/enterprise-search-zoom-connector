@@ -7,14 +7,12 @@
 the all_chat_access list and will create documents from the fetched responses.
 """
 import datetime
-import json
 import threading
-import time
 
 import requests
 from dateutil.relativedelta import relativedelta
 
-from .constant import FILES, RFC_3339_DATETIME_FORMAT
+from .constant import CHATS, FILES, RFC_3339_DATETIME_FORMAT
 from .utils import extract, retry
 
 
@@ -53,12 +51,91 @@ class ZoomChatMessages:
         end_time = end_time.strftime(RFC_3339_DATETIME_FORMAT)
         return start_time, end_time
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
+    def get_chats_from_user_id(self, user_id, start_time, end_time):
+        """This method is responsible to fetch chats initiated by the user id, which are in range of past
+        six months.
+        :param user_id: String of Zoom user id.
+        :param start_time: datetime string for lower limit for data fetching.
+        :param end_time: datetime string for upper limit for data fetching.
+        :returns: list of dictionary containing chats of the user.
+        """
+        user_chats = []
+        try:
+            url = (
+                f"chat/users/{user_id}/messages?page_size=300&search_key=%20"
+                f"&search_type=message&from={start_time}&to={end_time}"
+            )
+            user_chats = self.zoom_client.get(
+                end_point=url, key="messages", is_paginated=True
+            )
+        except Exception as exception:
+            self.logger.exception(
+                f"Unknown error occurred while fetching chats from Zoom: {exception}"
+            )
+            raise exception
+        self.logger.info(
+            f"Thread: [{threading.get_ident()}] Fetched total : {len(user_chats)} chat(s) for {user_id}."
         )
-    )
+        return user_chats
+
+    def get_chats_details_documents(
+        self,
+        users_data,
+        chats_schema,
+        start_time,
+        end_time,
+        enable_permission,
+    ):
+        """This method will iterate over list of users and will get all the chats of user,
+        it will create chats documents from the returned data ready to be indexed.
+        :param users_data: list of dictionaries where each dictionary contains details fetched for a user from Zoom.
+        :param chats_schema: dictionary of fields to be indexed for Chats.
+        :param start_time: datetime object for lower limit for data fetching.
+        :param end_time: datetime object for upper limit for data fetching.
+        :param enable_permission: boolean to check if permission sync is enabled or not.
+        :returns: dictionary containing type of data along with the data.
+        """
+        try:
+            chats_documents = []
+            start_time, end_time = self.get_time_range(
+                start_time, end_time
+            )
+            for user in users_data:
+                self.logger.info(
+                    f"Thread: [{threading.get_ident()}] Attempting to extract"
+                    f" chat(s) of user {user}"
+                )
+                chats_list = self.get_chats_from_user_id(user, start_time, end_time)
+                for chat in chats_list:
+                    # skipping the chat if it's already fetched by any previous user id.
+                    if any(
+                        document["id"] == chat["id"] for document in chats_documents
+                    ):
+                        continue
+                    chat_document = {"type": CHATS, "parent_id": user}
+                    for ws_field, zoom_fields in chats_schema.items():
+                        chat_document[ws_field] = chat[zoom_fields]
+                    chat_document["body"] = f"Message : {chat['message']}"
+                    chat_document[
+                        "url"
+                    ] = "https://zoom.us/account/archivemsg/search#/list"
+                    if enable_permission:
+                        permission_list = ["ChatMessage:Read"]
+                        permission_list.extend(
+                            self.zoom_enterprise_search_mappings.get(user, [])
+                        )
+                        chat_document["_allow_permissions"] = permission_list
+                    chats_documents.append(chat_document)
+            self.logger.info(
+                f"Thread: [{threading.get_ident()}] Fetched total {len(chats_documents)} chat(s) documents."
+            )
+            return {"type": CHATS, "data": chats_documents}
+        except Exception as exception:
+            self.logger.error(
+                f"Error {exception} occurred while generating chat(s) documents."
+            )
+            raise exception
+
     def get_files_from_user_id(self, user_id, start_time, end_time):
         """This method will fetch all the files sent by the user, save it in the list.
         :param user_id: string of the user ID.
@@ -67,38 +144,14 @@ class ZoomChatMessages:
         :returns: list of dictionary containing files of the user.
         """
         user_files = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = (
-                    f"https://api.zoom.us/v2/chat/users/{user_id}/messages?page_size=300&search_key=%20&"
-                    f"search_type=file&from={start_time}&to={end_time}"
-                )
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                files_response = requests.get(url=url, headers=headers)
-                if files_response and files_response.status_code == 200:
-                    response = json.loads(files_response.text)
-                    next_page_token = response["next_page_token"]
-                    user_files.extend(response["messages"])
-                elif files_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    files_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching file(s) from Zoom: {exception}"
+            url = (
+                f"chat/users/{user_id}/messages?page_size=300&search_key=%20&"
+                f"search_type=file&from={start_time}&to={end_time}"
             )
-            raise exception
+            user_files = self.zoom_client.get(
+                end_point=url, key="messages", is_paginated=True
+            )
         except Exception as exception:
             self.logger.exception(
                 f"Unknown error occurred while fetching file(s) from Zoom: {exception}"
@@ -180,7 +233,14 @@ class ZoomChatMessages:
                     )
                     content = ""
                     if attachment_content_response:
-                        content = extract(attachment_content_response)
+                        file_name = file.get("file_name", "file_id")
+                        self.logger.info(f"Fetching Content of file : {file_name}")
+                        content = extract(
+                            attachment_content_response,
+                            file_name,
+                            self.logger,
+                            retry_count=2,
+                        )
                     file_document[
                         "body"
                     ] = f"Sender : {file['sender']}\nFile Content : {content}"

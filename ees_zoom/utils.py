@@ -9,9 +9,14 @@ import time
 import urllib.parse
 from datetime import datetime
 
+import tika
+from requests.exceptions import ReadTimeout
 from tika import parser
+from urllib3.exceptions import ReadTimeoutError
 
 from .constant import RFC_3339_DATETIME_FORMAT
+
+TIKA_TIMEOUT = 60  # Timeout in seconds
 
 
 class RetryCountExceededException(Exception):
@@ -25,15 +30,28 @@ class RetryCountExceededException(Exception):
         super().__init__(message)
 
 
-def extract(content):
+def extract(content, document_name, logger, retry_count):
     """Extracts the contents
     :param content: content to be extracted
     Returns:
         parsed_test: parsed text
     """
-    parsed = parser.from_buffer(content)
-    parsed_text = parsed["content"]
-    return parsed_text
+    while retry_count:
+        try:
+            parsed = parser.from_buffer(
+                content, requestOptions={"timeout": TIKA_TIMEOUT}
+            )
+            return parsed["content"]
+        except (ReadTimeoutError, ReadTimeout):
+            logger.error(
+                f"Tika timeout while parsing the content for {document_name}. Retrying.."
+            )
+        except (ConnectionError, RuntimeError):
+            logger.error("Could not reach Tika server. Retrying...")
+            tika.initVM()
+        finally:
+            retry_count -= 1
+    return ""
 
 
 def url_encode(object_name):
@@ -113,3 +131,30 @@ def split_documents_into_equal_chunks(documents, chunk_size):
 def get_current_time():
     """Returns current time in rfc 3339 format"""
     return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
+
+
+def split_by_max_cumulative_length(documents, allowed_size):
+    """This method splits a list or dictionary into list based on allowed size limit.
+    :param documents: List or Dictionary to be partitioned into chunks
+    :param allowed_size: Maximum size allowed for indexing per request.
+    Returns:
+        list_of_chunks: List of list of dictionary containing the dictionaries to be indexed.
+    """
+    list_of_chunks = []
+    chunk = []
+    current_size = allowed_size
+    for document in documents:
+        document_size = len(str(document))
+        if document_size < current_size:
+            chunk.append(document)
+            current_size -= document_size
+        else:
+            if chunk:
+                list_of_chunks.append(chunk)
+            if document_size > allowed_size:
+                document["body"] = None
+                document_size = len(str(document))
+            chunk = [document]
+            current_size = allowed_size - document_size
+    list_of_chunks.append(chunk)
+    return list_of_chunks

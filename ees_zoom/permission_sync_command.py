@@ -8,10 +8,10 @@
     It will attempt to remove from Enterprise Search instance the documents
     that have been deleted from the third-party system.
 """
-import csv
 import os
 
 from .base_command import BaseCommand
+from .zoom_roles import ZoomRoles
 
 
 class PermissionSyncDisabledException(Exception):
@@ -21,7 +21,7 @@ class PermissionSyncDisabledException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, message="The Permission flag is disabled"):
+    def __init__(self, message="The Permission flag is disabled."):
         super().__init__(message)
 
 
@@ -38,10 +38,10 @@ class EmptyMappingException(Exception):
 
 
 class PermissionSyncCommand(BaseCommand):
-    """This class contains logic to sync user permissions from the source.
+    """This class contains logic to sync user permissions from the Zoom.
 
     It can be used to run the job that will periodically sync permissions
-    from the source to Elastic Enterprise Search."""
+    from the Zoom to Elastic Enterprise Search."""
 
     def __init__(self, args):
         super().__init__(args)
@@ -56,77 +56,54 @@ class PermissionSyncCommand(BaseCommand):
     def remove_all_permissions(self):
         """Removes all the permissions present in the workplace"""
         try:
-            user_permission = self.workplace_search_client.list_permissions(
-                content_source_id=self.ws_source,
-            )
-
+            user_permission = self.workplace_search_client.list_permissions()
             if user_permission:
                 self.logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission["results"]
                 for permission in permission_list:
-                    self.workplace_search_client.remove_user_permissions(
-                        content_source_id=self.ws_source,
-                        user=permission["user"],
-                        body={"permissions": permission["permissions"]},
-                    )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                    self.workplace_search_client.remove_permissions(permission)
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
             )
 
-    def workplace_add_permission(self, user_name, permissions):
-        """This method when invoked would index the permission provided in the paramater
-        for the user in parameter user_name
-        :param permissions: list of permissions
-        :param user_name: user to assign permissions
+    def set_permissions_list(self, mappings):
+        """Method fetches roles and its members from zoom along with list of permissions associated with each
+        role and adds fetched permissions to enterprise search users.
+        :param mappings: Zoom-Enterprise search mapping dictionary
         """
-        try:
-            self.workplace_search_client.add_user_permissions(
-                content_source_id=self.ws_source,
-                user=user_name,
-                body={"permissions": permissions},
-            )
-            self.logger.info(f"Successfully indexed the permissions for user {user_name} to the workplace")
-        except Exception as exception:
-            self.logger.exception(
-                f"Error while indexing the permissions for user: {user_name} to the workplace. Error: {exception}"
-            )
+        roles_obj = ZoomRoles(self.config, self.logger, self.zoom_client, mappings)
+        roles_obj.set_list_of_roles_from_zoom()
+        for role in roles_obj.roles_list:
+            role_permissions = roles_obj.fetch_role_permissions(role["id"])
+            role_members_ids = roles_obj.fetch_members_of_role(role["id"])
+            for zoom_user, enterprise_search_users in mappings.items():
+                if zoom_user in role_members_ids:
+                    for enterprise_search_user in enterprise_search_users:
+                        role_permissions.append(enterprise_search_user)
+                        self.workplace_search_client.add_permissions(
+                            enterprise_search_user, role_permissions
+                        )
 
     def execute(self):
         """Runs the permission indexing logic.
 
-        This method when invoked, checks the permission of the source users and update those user
+        This method when invoked, checks the permission of the Zoom users and update those user
         permissions in the Workplace Search.
         """
         self.logger.info("Starting the permission indexing..")
         if not self.enable_document_permission:
             self.logger.warning("Exiting as the enable permission flag is set to False")
             raise PermissionSyncDisabledException
-        if self.user_mapping and os.path.exists(self.user_mapping) and os.path.getsize(self.user_mapping) > 0:
-            mappings = {}
-            with open(self.user_mapping, encoding="utf-8") as mapping_file:
-                try:
-                    csvreader = csv.reader(mapping_file)
-                    for row in csvreader:
-                        source_user_name = row[0]
-                        enterprise_search_user = row[1]
-                        if mappings.get(enterprise_search_user):
-                            mappings[enterprise_search_user].append(source_user_name)
-                        else:
-                            mappings[enterprise_search_user] = [source_user_name]
-                except csv.Error as e:
-                    self.logger.exception(
-                        f"Error while reading user mapping file at the location: \
-                        {self.user_mapping}. Error: {e}"
-                    )
+        if (
+            self.user_mapping and os.path.exists(self.user_mapping) and os.path.getsize(self.user_mapping) > 0
+        ):
             self.remove_all_permissions()
-            for key, val in mappings.items():
-                self.workplace_add_permission(key, val)
+            self.set_permissions_list(self.zoom_enterprise_search_mappings)
         else:
             self.logger.error(
-                f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty. \
-                Please add the source_user->enterprise_search_user mappings to sync the permissions in the \
-                    Enterprise Search"
+                f"Could not find the users mapping file at the location: {self.user_mapping} or the file is empty."
+                "Please add the zoom user_id->enterprise_search_user mappings to sync the permissions in the"
+                "Enterprise Search"
             )
             raise EmptyMappingException
