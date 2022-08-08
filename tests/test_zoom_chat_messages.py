@@ -64,7 +64,7 @@ def create_chats_messages_object():
 
 
 @mock.patch("requests.get")
-def test_get_chats_details_documents_positive(mock_request_get):
+def test_get_chat_messages_positive(mock_request_get):
     """Test for generating chats documents, generated from data fetched from Zoom.
     :param mock_request_get: mock patch for requests.get calls.
     """
@@ -153,7 +153,7 @@ def test_get_chats_details_documents_positive(mock_request_get):
     mock_request_get.side_effect = mock_response
 
     # Execute
-    response = chats_messages_object.get_chats_details_documents(
+    response = chats_messages_object.get_chat_messages(
         dummy_users_data,
         CHATS_SCHEMA,
         start_time,
@@ -167,7 +167,7 @@ def test_get_chats_details_documents_positive(mock_request_get):
 
 
 @mock.patch("requests.get")
-def test_get_chats_details_documents_negative(mock_request_get):
+def test_get_chat_messages_negative(mock_request_get):
     """test case where Zoom is down
     :param mock_request_get: mock patch for requests.get calls.
     """
@@ -190,7 +190,7 @@ def test_get_chats_details_documents_negative(mock_request_get):
 
     # Execute and assert
     with pytest.raises(BaseException):
-        chats_messages_object.get_chats_details_documents(
+        chats_messages_object.get_chat_messages(
             dummy_users_data,
             CHATS_SCHEMA,
             start_time,

@@ -6,12 +6,15 @@
 """This module will fetch chats and files details for each user id present in
 the all_chat_access list and will create documents from the fetched responses.
 """
-import datetime
 import threading
+from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 
-from .constant import CHATS, RFC_3339_DATETIME_FORMAT
+from .constant import CHATS
+from .utils import constraint_time_range
+
+TIME_CONSTRAINT_FOR_CHATS = (datetime.utcnow()) + relativedelta(months=-6, days=+4)
 
 
 class ZoomChatMessages:
@@ -23,31 +26,6 @@ class ZoomChatMessages:
         self.zoom_client = zoom_client
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
         self.retry_count = config.get_value("retry_count")
-
-    def get_time_range(self, start_time, end_time):
-        """This method will check if start time and end time for object fetching are
-        lesser than the allowed limit or not, if not then it will set the start time
-        or end time accordingly.
-        :param start_time: datetime object for lower limit for data fetching.
-        :param end_time: datetime object for upper limit for data fetching.
-        :returns: updated datetime string for start time and end time.
-        """
-        six_months = (datetime.datetime.utcnow()) + relativedelta(months=-6, days=+4)
-        if start_time < six_months:
-            self.logger.warning(
-                f"Start time is lesser than the allowed limit. Expected allowed limit : {six_months}"
-                f" and found: {start_time}.\nSetting the start time to : {six_months}"
-            )
-            start_time = six_months
-        if end_time < six_months:
-            self.logger.warning(
-                f"End time is lesser than the allowed limit. Expected allowed limit : {six_months}"
-                f" and found: {end_time}.\nSetting the end time to : {datetime.datetime.utcnow()}"
-            )
-            end_time = datetime.datetime.utcnow()
-        start_time = start_time.strftime(RFC_3339_DATETIME_FORMAT)
-        end_time = end_time.strftime(RFC_3339_DATETIME_FORMAT)
-        return start_time, end_time
 
     def get_chats_from_user_id(self, user_id, start_time, end_time):
         """This method is responsible to fetch chats initiated by the user id, which are in range of past
@@ -76,7 +54,7 @@ class ZoomChatMessages:
         )
         return user_chats
 
-    def get_chats_details_documents(
+    def get_chat_messages(
         self,
         users_data,
         chats_schema,
@@ -95,8 +73,8 @@ class ZoomChatMessages:
         """
         try:
             chats_documents = []
-            start_time, end_time = self.get_time_range(
-                start_time, end_time
+            start_time, end_time = constraint_time_range(
+                start_time=start_time, end_time=end_time, time_constraint=TIME_CONSTRAINT_FOR_CHATS, logger=self.logger
             )
             for user in users_data:
                 self.logger.info(

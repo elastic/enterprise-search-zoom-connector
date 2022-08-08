@@ -266,7 +266,7 @@ class SyncZoom:
         """
         fetched_documents = []
         chats_schema = self.get_schema_fields(CHATS)
-        fetched_documents = chats_files_object.get_chats_details_documents(
+        fetched_documents = chats_files_object.get_chat_messages(
             users_data=chat_access_enabled_users,
             chats_schema=chats_schema,
             start_time=self.objects_time_range[CHATS][0],
