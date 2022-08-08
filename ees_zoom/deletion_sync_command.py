@@ -156,7 +156,7 @@ class DeletionSyncCommand(BaseCommand):
             if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
                 self.global_deletion_ids.append(str(document["id"]))
 
-    def collect_multithreaded_objects_ids(
+    def collect_channels_and_recordings_ids(
         self,
         multithreaded_objects_ids,
     ):
@@ -266,7 +266,7 @@ class DeletionSyncCommand(BaseCommand):
                 multithreaded_objects_ids.extend(delete_key_ids[object_type])
 
         if multithreaded_objects_ids:
-            self.collect_multithreaded_objects_ids(multithreaded_objects_ids)
+            self.collect_channels_and_recordings_ids(multithreaded_objects_ids)
 
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(

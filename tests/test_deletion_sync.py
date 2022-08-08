@@ -610,7 +610,7 @@ def test_collect_past_deleted_meetings_negative(
     ],
 )
 @patch.object(SyncZoom, "perform_sync")
-def test_collect_multithreaded_objects_ids_positive(
+def test_collect_channels_and_recordings_id_positive(
     mock1,
     requests_mock,
     objects_ids_list,
@@ -634,7 +634,7 @@ def test_collect_multithreaded_objects_ids_positive(
     deletion.zoom_client.ensure_token_valid()
 
     # Execute
-    deletion.collect_multithreaded_objects_ids(objects_ids_list)
+    deletion.collect_channels_and_recordings_ids(objects_ids_list)
 
     # Assert
     assert deletion.global_deletion_ids == deletion_response
@@ -663,7 +663,7 @@ def test_collect_multithreaded_objects_ids_positive(
     ],
 )
 @patch.object(SyncZoom, "perform_sync")
-def test_collect_multithreaded_objects_ids_negative(
+def test_collect_channels_and_recordings_ids_negative(
     mock1,
     requests_mock,
     objects_ids_list,
@@ -686,7 +686,7 @@ def test_collect_multithreaded_objects_ids_negative(
     deletion.zoom_client.ensure_token_valid()
 
     # Execute
-    deletion.collect_multithreaded_objects_ids(objects_ids_list)
+    deletion.collect_channels_and_recordings_ids(objects_ids_list)
 
     # Assert
     assert [] == deletion.global_deletion_ids
