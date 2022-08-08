@@ -158,11 +158,11 @@ class DeletionSyncCommand(BaseCommand):
 
     def collect_channels_and_recordings_ids(
         self,
-        multithreaded_objects_ids,
+        channels_and_recordings_ids,
     ):
         """This function is used to collect document ids to be deleted from
         enterprise-search for channels, and recordings object.
-        :param multithreaded_objects_ids: list of channels, and recordings ids which are present in enterprise-search.
+        :param channels_and_recordings_ids: list of channels, and recordings ids which are present in enterprise-search.
         """
         self.logger.info(
             "Started collecting object_ids to be deleted from enterprise search for:"
@@ -209,7 +209,7 @@ class DeletionSyncCommand(BaseCommand):
 
         fetched_objects_ids = [str(document["id"]) for document in global_keys]
 
-        for doc_id in multithreaded_objects_ids:
+        for doc_id in channels_and_recordings_ids:
             if str(doc_id) not in fetched_objects_ids:
                 self.global_deletion_ids.append(str(doc_id))
 
@@ -260,13 +260,13 @@ class DeletionSyncCommand(BaseCommand):
                         storage_with_collection["delete_keys"],
                     )
 
-        multithreaded_objects_ids = []
+        channels_and_recordings_ids = []
         for object_type in [CHANNELS, RECORDINGS]:
             if object_type in self.configuration_objects and delete_key_ids[object_type]:
-                multithreaded_objects_ids.extend(delete_key_ids[object_type])
+                channels_and_recordings_ids.extend(delete_key_ids[object_type])
 
-        if multithreaded_objects_ids:
-            self.collect_channels_and_recordings_ids(multithreaded_objects_ids)
+        if channels_and_recordings_ids:
+            self.collect_channels_and_recordings_ids(channels_and_recordings_ids)
 
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(
