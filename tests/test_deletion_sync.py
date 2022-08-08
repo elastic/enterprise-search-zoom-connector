@@ -610,7 +610,7 @@ def test_collect_past_deleted_meetings_negative(
     ],
 )
 @patch.object(SyncZoom, "perform_sync")
-def test_collect_channels_and_recordings_id_positive(
+def test_collect_channels_and_recordings_ids_positive(
     mock1,
     requests_mock,
     objects_ids_list,
