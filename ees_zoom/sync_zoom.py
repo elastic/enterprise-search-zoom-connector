@@ -255,11 +255,8 @@ class SyncZoom:
         self.queue.append_to_queue(channels_data)
         return channels_data
 
-    def fetch_chats_and_append_to_queue(
-        self, chat_access_enabled_users, chats_files_object
-    ):
-        """This method fetches the chats from Zoom server and
-        appends them to the shared queue
+    def get_chats(self, chat_access_enabled_users, chats_files_object):
+        """This method fetches the chats from Zoom server.
         :param chat_access_enabled_users: list of user-ids which have chats-file:write permission.
         :param chats_files_object: ZoomChatMessages Object
         :returns: list of chats documents.
@@ -274,7 +271,6 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         chats_data = fetched_documents["data"]
-        self.queue.append_to_queue(chats_data)
         return chats_data
 
     def perform_sync(self, parent_object, partitioned_users_list):
@@ -381,12 +377,12 @@ class SyncZoom:
                         self.zoom_client,
                         self.zoom_enterprise_search_mappings,
                     )
-                    documents_to_index.extend(
-                        self.fetch_chats_and_append_to_queue(
-                            chat_access_enabled_users,
-                            chats_files_object,
-                        )
+                    chats_documents = self.get_chats(
+                        chat_access_enabled_users,
+                        chats_files_object,
                     )
+                    documents_to_index.extend(chats_documents)
+                    self.queue.append_to_queue(chats_documents)
         except Exception as exception:
             self.logger.error(
                 f"{[threading.get_ident()]} Error while fetching objects. Error: {exception}"
