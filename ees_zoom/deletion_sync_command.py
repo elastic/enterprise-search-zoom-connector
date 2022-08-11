@@ -9,17 +9,22 @@
     Elastic Enterprise Search until a full sync happens, or until this module is used.
 """
 
+from datetime import datetime
+
 import requests
 from iteration_utilities import unique_everseen
 
 from .base_command import BaseCommand
-from .constant import (BATCH_SIZE, GROUPS, MEETINGS, PAST_MEETINGS,
+from .constant import (BATCH_SIZE, CHANNELS, GROUPS, MEETINGS,
+                       PAST_MEETINGS, RECORDINGS, RFC_3339_DATETIME_FORMAT,
                        ROLES, USERS)
+from .sync_zoom import SyncZoom
 from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
+MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
 # few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
-TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS]
+TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, RECORDINGS]
 
 
 class DeletionSyncCommand(BaseCommand):
@@ -151,6 +156,63 @@ class DeletionSyncCommand(BaseCommand):
             if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
                 self.global_deletion_ids.append(str(document["id"]))
 
+    def collect_channels_and_recordings_ids(
+        self,
+        channels_and_recordings_ids,
+    ):
+        """This function is used to collect document ids to be deleted from
+        enterprise-search for channels, and recordings object.
+        :param channels_and_recordings_ids: list of channels, and recordings ids which are present in enterprise-search.
+        """
+        self.logger.info(
+            "Started collecting object_ids to be deleted from enterprise search for:"
+            f" {CHANNELS} and {RECORDINGS}"
+        )
+        try:
+            objects_time_range = {}
+            objects_time_range[RECORDINGS] = [
+                (
+                    datetime.strptime(
+                        self.start_time,
+                        RFC_3339_DATETIME_FORMAT,
+                    )
+                ),
+                (
+                    datetime.strptime(
+                        self.end_time,
+                        RFC_3339_DATETIME_FORMAT,
+                    )
+                ),
+            ]
+
+            sync_zoom = SyncZoom(
+                self.config,
+                self.logger,
+                self.workplace_search_client,
+                self.zoom_client,
+                objects_time_range,
+                {},
+                {},
+            )
+            partitioned_users_buckets = sync_zoom.get_all_users_from_zoom()
+            global_keys = self.create_and_execute_jobs(
+                self.zoom_sync_thread_count,
+                sync_zoom.perform_sync,
+                (MULTITHREADED_OBJECTS_FOR_DELETION,),
+                partitioned_users_buckets,
+            )
+        except Exception as exception:
+            self.logger.error(
+                f"Error while checking objects: {CHANNELS}, and {RECORDINGS} for deletion from zoom."
+            )
+            raise exception
+
+        fetched_objects_ids = [str(document["id"]) for document in global_keys]
+
+        for doc_id in channels_and_recordings_ids:
+            if str(doc_id) not in fetched_objects_ids:
+                self.global_deletion_ids.append(str(doc_id))
+
     def execute(self):
         """Runs the deletion sync logic"""
         logger = self.logger
@@ -162,9 +224,11 @@ class DeletionSyncCommand(BaseCommand):
             GROUPS: [],
             MEETINGS: [],
             PAST_MEETINGS: [],
+            CHANNELS: [],
+            RECORDINGS: [],
         }
         for document in ids_collection["delete_keys"]:
-            if document["type"] in [ROLES, GROUPS, USERS]:
+            if document["type"] in [ROLES, GROUPS, USERS, CHANNELS]:
                 delete_key_ids[document["type"]].append(document["id"])
         if ROLES in self.configuration_objects and delete_key_ids[ROLES]:
             self.collect_deleted_roles_ids(delete_key_ids[ROLES])
@@ -195,6 +259,14 @@ class DeletionSyncCommand(BaseCommand):
                         delete_key_ids[PAST_MEETINGS],
                         storage_with_collection["delete_keys"],
                     )
+
+        channels_and_recordings_ids = []
+        for object_type in [CHANNELS, RECORDINGS]:
+            if object_type in self.configuration_objects and delete_key_ids[object_type]:
+                channels_and_recordings_ids.extend(delete_key_ids[object_type])
+
+        if channels_and_recordings_ids:
+            self.collect_channels_and_recordings_ids(channels_and_recordings_ids)
 
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(
