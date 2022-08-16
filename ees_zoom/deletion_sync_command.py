@@ -152,16 +152,19 @@ class DeletionSyncCommand(BaseCommand):
                 raise exception
 
         for document in delete_keys_list:
-            if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
+            if (
+                document["type"] == PAST_MEETINGS
+                and document["parent_id"] in past_meetings_deletion_ids_list
+            ):
                 self.global_deletion_ids.append(str(document["id"]))
 
-    def collect_multithreaded_objects_ids(
+    def collect_channels_and_recordings_ids(
         self,
-        multithreaded_objects_ids,
+        channels_and_recordings_ids,
     ):
         """This function is used to collect document ids to be deleted from
         enterprise-search for channels, recordings, chats and files object.
-        :param multithreaded_objects_ids: list of channels, recording, chat
+        :param channels_and_recordings_ids: list of channels, recording, chat
         and file documents ids.
         which are present in enterprise-search.
         """
@@ -213,7 +216,7 @@ class DeletionSyncCommand(BaseCommand):
 
         fetched_objects_ids = [str(document["id"]) for document in global_keys]
 
-        for doc_id in multithreaded_objects_ids:
+        for doc_id in channels_and_recordings_ids:
             if str(doc_id) not in fetched_objects_ids:
                 self.global_deletion_ids.append(str(doc_id))
 
@@ -224,7 +227,7 @@ class DeletionSyncCommand(BaseCommand):
         :param document: dictionary of object document present in delete_keys of doc_id storage.
         :param deleted_ids_list: list of ids for deleted objects ids.
         :param chats_and_files_id: chats and files documents ids present in delete_keys of doc_id.json file.
-        :param time_limit: string of time-limit type.(ex: six_months_time or one_month_time)
+        :param time_limit: string of time-limit type.(ex: six_months_ago or one_month_ago)
         :returns: it will return list of document dictionary if document is archived.
         """
         # This block will detect if the parent user of an object is deleted from Zoom or not.
@@ -246,19 +249,19 @@ class DeletionSyncCommand(BaseCommand):
         """
         storage_with_collection = self.local_storage.load_storage()
         # chats and files objects older than last six months can't be fetched from the Zoom APIs
-        six_months_time = datetime.strptime(
+        six_months_ago = datetime.strptime(
             get_current_time(),
             RFC_3339_DATETIME_FORMAT,
         ) + relativedelta(months=-6, days=+4)
         # recordings, meetings and past_meetings objects older than last month can't be fetched from the Zoom API
-        one_month_time = datetime.strptime(
+        one_month_ago = datetime.strptime(
             get_current_time(),
             RFC_3339_DATETIME_FORMAT,
         ) + relativedelta(months=-1, days=+2)
         documents_list_to_omit = []
         for document in storage_with_collection["delete_keys"]:
             if document["type"] in [CHATS, FILES] and is_within_time_range(
-                document, six_months_time
+                document, six_months_ago
             ):
                 documents_list_to_omit.extend(
                     self.omitted_document(
@@ -269,7 +272,7 @@ class DeletionSyncCommand(BaseCommand):
                     )
                 )
             elif document["type"] in [RECORDINGS, PAST_MEETINGS, MEETINGS] and is_within_time_range(
-                document, one_month_time
+                document, one_month_ago
             ):
                 documents_list_to_omit.extend(
                     self.omitted_document(
@@ -335,7 +338,10 @@ class DeletionSyncCommand(BaseCommand):
                 )
 
         for object_type in [MEETINGS, PAST_MEETINGS]:
-            if object_type in self.configuration_objects and delete_key_ids[object_type]:
+            if (
+                object_type in self.configuration_objects
+                and delete_key_ids[object_type]
+            ):
                 if object_type == MEETINGS:
                     self.collect_deleted_ids(
                         delete_key_ids[MEETINGS], MEETINGS
@@ -346,14 +352,17 @@ class DeletionSyncCommand(BaseCommand):
                         storage_with_collection["delete_keys"],
                     )
 
-        multithreaded_objects_ids = []
+        channels_and_recordings_ids = []
         for object_type in [CHANNELS, CHATS, FILES, RECORDINGS]:
-            if object_type in self.configuration_objects and delete_key_ids[object_type]:
-                multithreaded_objects_ids.extend(delete_key_ids[object_type])
+            if (
+                object_type in self.configuration_objects
+                and delete_key_ids[object_type]
+            ):
+                channels_and_recordings_ids.extend(delete_key_ids[object_type])
 
-        if multithreaded_objects_ids:
-            self.collect_multithreaded_objects_ids(
-                multithreaded_objects_ids,
+        if channels_and_recordings_ids:
+            self.collect_channels_and_recordings_ids(
+                channels_and_recordings_ids,
             )
 
         if self.global_deletion_ids:
