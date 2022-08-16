@@ -35,6 +35,7 @@ def test_start_producer(mock1, mock2):
     :param mock1: patch for get_all_users_from_zoom
     :param mock2: patch for perform_sync
     """
+    # Setup
     config, logger = settings()
     args = get_args("FullSyncCommand")
     full = FullSyncCommand(args)
@@ -44,8 +45,10 @@ def test_start_producer(mock1, mock2):
     full.create_and_execute_jobs.return_value = MagicMock()
     full.zoom_client.ensure_token_valid = Mock()
     mock2.return_value = MagicMock()
+
+    # Execute
     full.start_producer(queue)
-    time_independent_objects = ["roles", "groups"]
+    time_independent_objects = ["roles", "groups", "channels"]
     object_types_count = 0
     object_types_count = sum(
         object not in time_independent_objects for object in config.get_value("objects")
@@ -53,6 +56,10 @@ def test_start_producer(mock1, mock2):
     total_expected_size = object_types_count + config.get_value(
         "enterprise_search_sync_thread_count"
     )
+
+    # Assert
     assert queue.qsize() == total_expected_size
+
+    # Cleanup
     queue.close()
     queue.join_thread()
