@@ -7,6 +7,7 @@
     Documents that were deleted in Zoom will still be available in Elastic Enterprise Search
     until this module is used.
 """
+
 from datetime import datetime
 
 import requests
@@ -224,14 +225,14 @@ class DeletionSyncCommand(BaseCommand):
         ids_collection = self.local_storage.load_storage()
         delete_key_ids = {
             USERS: [],
-            MEETINGS: [],
             ROLES: [],
+            GROUPS: [],
+            MEETINGS: [],
+            PAST_MEETINGS: [],
             CHANNELS: [],
             RECORDINGS: [],
             CHATS: [],
             FILES: [],
-            PAST_MEETINGS: [],
-            GROUPS: [],
         }
         for document in ids_collection["delete_keys"]:
             if document["type"] in [ROLES, GROUPS, USERS, CHANNELS]:

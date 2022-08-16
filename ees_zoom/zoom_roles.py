@@ -123,3 +123,19 @@ class ZoomRoles:
             f"Thread: [{threading.get_ident()}] fetched : {len(users_list)} members for role id:{role_id} ."
         )
         return member_ids
+
+    def collect_chats_enabled_users_list(self):
+        """This method will iterate over list of roles. In each iteration it will fetch privileges
+        assigned to roles and members having that role. it will insert insert member id in the appropriate list
+        according to conditions specified in if block.
+        :returns: lists contains userid(member_id) which have global access to perticular object.
+        """
+        self.set_list_of_roles_from_zoom()
+        chat_permission_users_list = []
+        for role in self.roles_list:
+            role_permissions = self.fetch_role_permissions(role["id"])
+            role_members_ids = self.fetch_members_of_role(role["id"])
+            for role_permission in role_permissions:
+                if role_permission == CHAT_MESSAGE_READ_PERMISSION:
+                    chat_permission_users_list.extend(role_members_ids)
+        return chat_permission_users_list
