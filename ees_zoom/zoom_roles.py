@@ -8,15 +8,9 @@
 generate documents from fetched responses.
 """
 
-import json
 import threading
-import time
-
-import requests
 
 from .constant import ROLES
-from .utils import retry
-from .zoom_client import ZoomClient
 
 CHAT_MESSAGE_READ_PERMISSION = "ChatMessage:Read"
 
@@ -36,41 +30,14 @@ class ZoomRoles:
         self.roles_list = []
         self.retry_count = config.get_value("retry_count")
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def set_list_of_roles_from_zoom(self):
         """This function will fetch all the available roles from Zoom
         and will partition them in equal groups based on zoom_sync_thread_count
         then store all the roles in object variable.
         """
         try:
-            url = "https://api.zoom.us/v2/roles"
-            headers = {
-                "authorization": f"Bearer {self.zoom_client.access_token}",
-                "content-type": "application/json",
-            }
-            roles_response = requests.get(url=url, headers=headers)
-            if roles_response and roles_response.status_code == 200:
-                response = json.loads(roles_response.text)
-                self.roles_list.extend(response[ROLES])
-            elif roles_response.status_code == 401:
-                self.set_list_of_roles_from_zoom()
-            else:
-                roles_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching roles from Zoom: {exception}"
-            )
-            raise exception
+            roles_response_list = self.zoom_client.get(end_point=ROLES, key=ROLES)
+            self.roles_list.extend(roles_response_list)
         except Exception as exception:
             self.logger.error(
                 f"Error occurred while fetching roles from Zoom: {exception}"
@@ -86,7 +53,7 @@ class ZoomRoles:
         :param roles_schema: dictionary of fields available in Include_fields and DEFAULT_SCHEMA.
         :param roles_data: list of dictionary contains roles data fetched from Zoom api.
         :param enable_permission: boolean to check if permission sync is enabled or not.
-        :returns: dictionary of valid documents for roles object to be indexed.
+        :returns: dictionary containing type of data along with the data.
         """
         try:
             if not roles_data:
@@ -116,13 +83,6 @@ class ZoomRoles:
             )
             raise key_error_exception
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def fetch_role_permissions(self, role_id):
         """This function will fetch all the permissions using role id.
         :param role_id: string of the role ID.
@@ -130,28 +90,9 @@ class ZoomRoles:
         """
         privileges_of_role = []
         try:
-            url = f"https://api.zoom.us/v2/roles/{role_id}"
-            headers = {
-                "authorization": f"Bearer {self.zoom_client.access_token}",
-                "content-type": "application/json",
-            }
-            roles_response = requests.get(url=url, headers=headers)
-            if roles_response and roles_response.status_code == 200:
-                response = json.loads(roles_response.text)
-                privileges_of_role.extend(response["privileges"])
-            elif roles_response.status_code == 401:
-                return self.fetch_role_permissions(role_id)
-            else:
-                roles_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching roles permissions from Zoom: {exception}"
+            privileges_of_role = self.zoom_client.get(
+                end_point=f"roles/{role_id}", key="privileges"
             )
-            raise exception
         except Exception as exception:
             self.logger.error(
                 f"Unknown error ocurred while fetching roles permissions from Zoom: {exception}"
@@ -161,48 +102,18 @@ class ZoomRoles:
         )
         return privileges_of_role
 
-    @retry(
-        exception_list=(
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        )
-    )
-    @ZoomClient.regenerate_token()
     def fetch_members_of_role(self, role_id):
         """Function fetches members which have role_id assigned to them.
         :param role_id: string of the role ID for which It has to fetch members.
         :returns: list of member_id having role as role_id.
         """
         users_list = []
-        next_page_token = True
         try:
-            while next_page_token:
-                url = f"https://api.zoom.us/v2/roles/{role_id}/members?page_size=300"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.zoom_client.access_token}",
-                    "content-type": "application/json",
-                }
-                member_response = requests.get(url=url, headers=headers)
-                if member_response and member_response.status_code == 200:
-                    response = json.loads(member_response.text)
-                    next_page_token = response["next_page_token"]
-                    users_list.extend(response["members"])
-                elif member_response.status_code == 401:
-                    if time.time() > self.zoom_client.access_token_expiration:
-                        self.zoom_client.get_token()
-                else:
-                    member_response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"Exception raised while fetching members from Zoom: {exception} For role id:{role_id}"
+            users_list = self.zoom_client.get(
+                end_point=f"roles/{role_id}/members?page_size=300",
+                key="members",
+                is_paginated=True,
             )
-            raise exception
         except Exception as exception:
             self.logger.error(
                 f"Unknown error ocurred while fetching members from Zoom: {exception} For role id:{role_id}"
