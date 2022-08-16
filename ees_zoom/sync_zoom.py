@@ -8,7 +8,7 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import (CHANNELS, CHATS, FILES, GROUPS, MEETINGS, PAST_MEETINGS,
+from .constant import (CHANNELS, FILES, GROUPS, MEETINGS, PAST_MEETINGS,
                        RECORDINGS, ROLES, USERS)
 from .utils import split_list_into_buckets
 from .zoom_channels import ZoomChannels
@@ -19,6 +19,8 @@ from .zoom_past_meetings import ZoomPastMeetings
 from .zoom_recordings import ZoomRecordings
 from .zoom_roles import ZoomRoles
 from .zoom_users import ZoomUsers
+
+MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
 
 
 class SyncZoom:
@@ -41,11 +43,9 @@ class SyncZoom:
         self.objects_time_range = objects_time_range
         self.queue = queue
         self.zoom_enterprise_search_mappings = zoom_enterprise_search_mappings
-        self.ws_source = config.get_value("enterprise_search.source_id")
         self.configuration_objects = config.get_value("objects")
         self.enable_permission = config.get_value("enable_document_permission")
         self.zoom_sync_thread_count = config.get_value("zoom_sync_thread_count")
-        self.mapping_sheet_path = config.get_value("zoom.user_mapping")
 
     def get_schema_fields(self, document_name):
         """Returns the schema of all the include fields or exclude fields specified in the configuration file.
@@ -114,11 +114,10 @@ class SyncZoom:
         self.queue.append_to_queue(users_data)
         return users_data
 
-    def fetch_meetings_and_append_to_queue(
+    def get_meetings(
         self, partitioned_users_list, meetings_object, is_meetings_in_objects
     ):
-        """This method fetches the meetings from Zoom server and
-        appends them to the shared queue
+        """This method fetches the meetings from Zoom server.
         :param partitioned_users_list: list of dictionaries where each dictionary contains details fetched for
         a user from Zoom
         :param meetings_object: ZoomMeetings Object.
@@ -140,12 +139,10 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         meetings_data = fetched_documents["data"]
-        self.queue.append_to_queue(meetings_data)
         return meetings_data
 
-    def fetch_past_meetings_and_append_to_queue(self, meetings_object):
-        """This method fetches the past-meetings from Zoom server and
-        appends them to the shared queue
+    def get_past_meetings(self, meetings_object):
+        """This method fetches the past-meetings from Zoom server.
         :param meetings_object: ZoomMeetings Object.
         :returns: list of past-meetings documents.
         """
@@ -165,7 +162,6 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         past_meetings_data = fetched_documents["data"]
-        self.queue.append_to_queue(past_meetings_data)
         return past_meetings_data
 
     def fetch_roles_and_append_to_queue(self, roles_object):
@@ -209,9 +205,8 @@ class SyncZoom:
         self.queue.append_to_queue(groups_data)
         return groups_data
 
-    def fetch_recordings_and_append_to_queue(self, partitioned_users_list):
-        """This method fetches the recordings from Zoom server and
-        appends them to the shared queue
+    def get_recordings(self, partitioned_users_list):
+        """This method fetches the recordings from Zoom server.
         :param partitioned_users_list: list of users for which recordings will be fetched.
         :returns: list of recordings documents.
         """
@@ -231,12 +226,10 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         recording_data = fetched_documents["data"]
-        self.queue.append_to_queue(recording_data)
         return recording_data
 
-    def fetch_channels_and_append_to_queue(self, partitioned_users_list):
-        """This method fetches the channels from Zoom server and
-        appends them to the shared queue
+    def get_channels(self, partitioned_users_list):
+        """This method fetches the channels from Zoom server.
         :param partitioned_users_list: list of users for which channels will be fetched.
         :returns: list of channels documents.
         """
@@ -254,36 +247,10 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         channels_data = fetched_documents["data"]
-        self.queue.append_to_queue(channels_data)
         return channels_data
 
-    def fetch_chats_and_append_to_queue(
-        self, chat_access_enabled_users, chats_files_object
-    ):
-        """This method fetches the chats from Zoom server and
-        appends them to the shared queue
-        :param chat_access_enabled_users: list of user-ids which have chats-file:write permission.
-        :param chats_files_object: ZoomChatMessages Object
-        :returns: list of chats documents.
-        """
-        fetched_documents = []
-        chats_schema = self.get_schema_fields(CHATS)
-        fetched_documents = chats_files_object.get_chats_details_documents(
-            users_data=chat_access_enabled_users,
-            chats_schema=chats_schema,
-            start_time=self.objects_time_range[CHATS][0],
-            end_time=self.objects_time_range[CHATS][1],
-            enable_permission=self.enable_permission,
-        )
-        chats_data = fetched_documents["data"]
-        self.queue.append_to_queue(chats_data)
-        return chats_data
-
-    def fetch_files_and_append_to_queue(
-        self, chat_access_enabled_users, chats_files_object
-    ):
-        """This method fetches the files from Zoom server and
-        appends them to the shared queue
+    def get_files(self, chat_access_enabled_users, chats_files_object):
+        """This method fetches the files from Zoom server.
         :param chat_access_enabled_users: list of user-ids which have chats-file:write permission.
         :param chats_files_obj: ZoomChatMessages Object
         :returns: list of files documents.
@@ -298,7 +265,6 @@ class SyncZoom:
             enable_permission=self.enable_permission,
         )
         files_data = fetched_documents["data"]
-        self.queue.append_to_queue(files_data)
         return files_data
 
     def perform_sync(self, parent_object, partitioned_users_list):
@@ -345,15 +311,19 @@ class SyncZoom:
                         self.fetch_groups_and_append_to_queue(groups_object)
                     )
 
-            elif parent_object == USERS:
-                if USERS in self.configuration_objects:
+            elif parent_object == USERS or parent_object == MULTITHREADED_OBJECTS_FOR_DELETION:
+                if USERS in self.configuration_objects and parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {USERS}."
                     )
                     documents_to_index.extend(
                         self.fetch_users_and_append_to_queue(partitioned_users_list)
                     )
-                if MEETINGS in self.configuration_objects or PAST_MEETINGS in self.configuration_objects:
+                if (
+                    parent_object != MULTITHREADED_OBJECTS_FOR_DELETION and (
+                        MEETINGS in self.configuration_objects or PAST_MEETINGS in self.configuration_objects
+                    )
+                ):
                     is_meetings_in_objects = False
                     if MEETINGS in self.configuration_objects:
                         is_meetings_in_objects = True
@@ -366,33 +336,36 @@ class SyncZoom:
                         self.zoom_client,
                         self.zoom_enterprise_search_mappings,
                     )
-                    documents_to_index.extend(
-                        self.fetch_meetings_and_append_to_queue(
-                            partitioned_users_list,
-                            meetings_object,
-                            is_meetings_in_objects,
-                        )
+                    meetings_documents = self.get_meetings(
+                        partitioned_users_list,
+                        meetings_object,
+                        is_meetings_in_objects,
                     )
-                if PAST_MEETINGS in self.configuration_objects:
+                    documents_to_index.extend(meetings_documents)
+                    self.queue.append_to_queue(meetings_documents)
+                if PAST_MEETINGS in self.configuration_objects and parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {PAST_MEETINGS}."
                     )
-                    documents_to_index.extend(
-                        self.fetch_past_meetings_and_append_to_queue(meetings_object)
-                    )
+                    past_meetings_documents = self.get_past_meetings(meetings_object)
+                    documents_to_index.extend(past_meetings_documents)
+                    self.queue.append_to_queue(past_meetings_documents)
                 if RECORDINGS in self.configuration_objects:
-                    documents_to_index.extend(
-                        self.fetch_recordings_and_append_to_queue(
-                            partitioned_users_list
-                        )
+                    recordings_documents = self.get_recordings(
+                        partitioned_users_list,
                     )
+                    documents_to_index.extend(recordings_documents)
+                    if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
+                        self.queue.append_to_queue(recordings_documents)
                 if CHANNELS in self.configuration_objects:
-                    documents_to_index.extend(
-                        self.fetch_channels_and_append_to_queue(partitioned_users_list)
+                    channels_documents = self.get_channels(
+                        partitioned_users_list,
                     )
-                if (
-                    CHATS in self.configuration_objects or FILES in self.configuration_objects
-                ):
+                    documents_to_index.extend(channels_documents)
+                    if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
+                        self.queue.append_to_queue(channels_documents)
+
+                if FILES in self.configuration_objects:
                     user_ids_list = []
                     for user in partitioned_users_list:
                         user_ids_list.append(user["id"])
@@ -407,20 +380,13 @@ class SyncZoom:
                         self.zoom_client,
                         self.zoom_enterprise_search_mappings,
                     )
-                    if CHATS in self.configuration_objects:
-                        documents_to_index.extend(
-                            self.fetch_chats_and_append_to_queue(
-                                chat_access_enabled_users,
-                                chats_files_object,
-                            )
-                        )
-                    if FILES in self.configuration_objects:
-                        documents_to_index.extend(
-                            self.fetch_files_and_append_to_queue(
-                                chat_access_enabled_users,
-                                chats_files_object,
-                            )
-                        )
+                    files_documents = self.get_files(
+                        chat_access_enabled_users,
+                        chats_files_object,
+                    )
+                    documents_to_index.extend(files_documents)
+                    if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
+                        self.queue.append_to_queue(files_documents)
         except Exception as exception:
             self.logger.error(
                 f"{[threading.get_ident()]} Error while fetching objects. Error: {exception}"
