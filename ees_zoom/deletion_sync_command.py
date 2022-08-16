@@ -7,6 +7,7 @@
     Documents that were deleted in Zoom will still be available in Elastic Enterprise Search
     until this module is used.
 """
+
 from datetime import datetime
 
 import requests
@@ -28,8 +29,9 @@ TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
 
 
 class DeletionSyncCommand(BaseCommand):
-    """DeletionSyncCommand class allows to remove instances of specific objects.
-    It provides a way to remove those objects from Elastic Enterprise Search
+    """DeletionSyncCommand class allows to remove instances of specific files.
+
+    It provides a way to remove those files from Elastic Enterprise Search
     that were deleted in source Server instance."""
 
     def __init__(self, args):
@@ -67,7 +69,7 @@ class DeletionSyncCommand(BaseCommand):
 
     def collect_deleted_ids(self, object_ids_list, object_type):
         """This function is used to collect document ids to be deleted from
-        enterprise-search for users, meetings, and groups object.
+        enterprise-search for users, groups, and meetings object.
         :param object_ids_list: object_ids list currently present in enterprise-search.
         :param object_type: different object type like users, meetings and groups object.
         """
@@ -152,9 +154,7 @@ class DeletionSyncCommand(BaseCommand):
                 raise exception
 
         for document in delete_keys_list:
-            if (
-                document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list
-            ):
+            if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
                 self.global_deletion_ids.append(str(document["id"]))
 
     def collect_channels_and_recordings_ids(
@@ -297,14 +297,14 @@ class DeletionSyncCommand(BaseCommand):
         ids_collection = self.local_storage.load_storage()
         delete_key_ids = {
             USERS: [],
-            MEETINGS: [],
             ROLES: [],
+            GROUPS: [],
+            MEETINGS: [],
+            PAST_MEETINGS: [],
             CHANNELS: [],
             RECORDINGS: [],
             CHATS: [],
             FILES: [],
-            PAST_MEETINGS: [],
-            GROUPS: [],
         }
         for document in ids_collection["delete_keys"]:
             if document["type"] in [ROLES, GROUPS, USERS, CHANNELS, CHATS, FILES]:
@@ -337,9 +337,7 @@ class DeletionSyncCommand(BaseCommand):
                 )
 
         for object_type in [MEETINGS, PAST_MEETINGS]:
-            if (
-                object_type in self.configuration_objects and delete_key_ids[object_type]
-            ):
+            if object_type in self.configuration_objects and delete_key_ids[object_type]:
                 if object_type == MEETINGS:
                     self.collect_deleted_ids(
                         delete_key_ids[MEETINGS], MEETINGS
@@ -352,15 +350,11 @@ class DeletionSyncCommand(BaseCommand):
 
         channels_and_recordings_ids = []
         for object_type in [CHANNELS, CHATS, FILES, RECORDINGS]:
-            if (
-                object_type in self.configuration_objects and delete_key_ids[object_type]
-            ):
+            if object_type in self.configuration_objects and delete_key_ids[object_type]:
                 channels_and_recordings_ids.extend(delete_key_ids[object_type])
 
         if channels_and_recordings_ids:
-            self.collect_channels_and_recordings_ids(
-                channels_and_recordings_ids,
-            )
+            self.collect_channels_and_recordings_ids(channels_and_recordings_ids)
 
         if self.global_deletion_ids:
             storage_with_collection = self.delete_documents(
