@@ -38,7 +38,6 @@ def settings():
 
 def test_remove_all_permissions():
     """Test that remove_all_permissions remove all permissions from Enterprise Search."""
-    # Setup
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
@@ -50,17 +49,12 @@ def test_remove_all_permissions():
         return_value=True
     )
     mock = Mock()
-
-    # Execute
     mock.permission_object.remove_all_permissions()
-
-    # Assert
     mock.permission_object.remove_all_permissions.assert_called()
 
 
 def test_workplace_add_permission():
     """Test that workplace_add_permission successfully add permission to Enterprise Search."""
-    # Setup
     args = argparse.Namespace()
     args.config_file = CONFIG_FILE
     permission_object = PermissionSyncCommand(args)
@@ -68,11 +62,7 @@ def test_workplace_add_permission():
         return_value=True
     )
     mock = Mock()
-
-    # Execute
     mock.permission_object.workplace_add_permission("user1", "permission1")
-
-    # Assert
     mock.permission_object.workplace_add_permission.assert_called()
 
 
