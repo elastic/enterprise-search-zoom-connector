@@ -153,8 +153,7 @@ class DeletionSyncCommand(BaseCommand):
 
         for document in delete_keys_list:
             if (
-                document["type"] == PAST_MEETINGS
-                and document["parent_id"] in past_meetings_deletion_ids_list
+                document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list
             ):
                 self.global_deletion_ids.append(str(document["id"]))
 
@@ -339,8 +338,7 @@ class DeletionSyncCommand(BaseCommand):
 
         for object_type in [MEETINGS, PAST_MEETINGS]:
             if (
-                object_type in self.configuration_objects
-                and delete_key_ids[object_type]
+                object_type in self.configuration_objects and delete_key_ids[object_type]
             ):
                 if object_type == MEETINGS:
                     self.collect_deleted_ids(
@@ -355,8 +353,7 @@ class DeletionSyncCommand(BaseCommand):
         channels_and_recordings_ids = []
         for object_type in [CHANNELS, CHATS, FILES, RECORDINGS]:
             if (
-                object_type in self.configuration_objects
-                and delete_key_ids[object_type]
+                object_type in self.configuration_objects and delete_key_ids[object_type]
             ):
                 channels_and_recordings_ids.extend(delete_key_ids[object_type])
 
