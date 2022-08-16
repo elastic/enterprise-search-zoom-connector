@@ -8,9 +8,14 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from ees_zoom.utils import (split_by_max_cumulative_length,  # noqa
-                            split_documents_into_equal_chunks,
-                            split_list_into_buckets, url_encode)
+from ees_zoom.utils import (  # noqa
+    split_by_max_cumulative_length,
+    split_documents_into_equal_chunks,
+    split_list_into_buckets,
+    url_encode,
+)
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 CONFIG_FILE = os.path.join(
     os.path.join(os.path.dirname(__file__), "config"),
@@ -98,9 +103,7 @@ def test_split_by_max_cumulative_length_with_lowest_possible_size():
         [{"name": "dummy5", "body": None}],
         [{"name": "dummy6", "body": None}],
     ]
-    returned_document = split_by_max_cumulative_length(
-        document_to_split, allowed_size
-    )
+    returned_document = split_by_max_cumulative_length(document_to_split, allowed_size)
     assert returned_document == expected_output
 
 
@@ -127,7 +130,5 @@ def test_split_by_max_cumulative_length_with_optimum_size():
             {"name": "dummy6", "body": "dummy6_body"},
         ],
     ]
-    returned_document = split_by_max_cumulative_length(
-        document_to_split, allowed_size
-    )
+    returned_document = split_by_max_cumulative_length(document_to_split, allowed_size)
     assert returned_document == expected_output

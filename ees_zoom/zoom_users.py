@@ -56,7 +56,7 @@ class ZoomUsers:
         :param start_time: datetime object for lower limit for data fetching.
         :param end_time: datetime object for upper limit for data fetching.
         :param enable_permission: boolean to check if permission sync is enabled or not.
-        :returns: Dictionary containing type of data along with the data.
+        :returns: dictionary containing type of data along with the data.
         """
         try:
             count = 0
