@@ -4,6 +4,7 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 """This module allows to remove recently deleted documents from Elastic Enterprise Search.
+
     Documents that were deleted in source will still be available in
     Elastic Enterprise Search until a full sync happens, or until this module is used.
 """
@@ -28,6 +29,7 @@ TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, RECORDINGS]
 
 class DeletionSyncCommand(BaseCommand):
     """DeletionSyncCommand class allows to remove instances of specific files.
+
     It provides a way to remove those files from Elastic Enterprise Search
     that were deleted in source Server instance."""
 
