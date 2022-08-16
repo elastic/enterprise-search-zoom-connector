@@ -128,6 +128,11 @@ def split_documents_into_equal_chunks(documents, chunk_size):
     return list_of_chunks
 
 
+def get_current_time():
+    """Returns current time in rfc 3339 format"""
+    return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
+
+
 def split_by_max_cumulative_length(documents, allowed_size):
     """This method splits a list or dictionary into list based on allowed size limit.
     :param documents: List or Dictionary to be partitioned into chunks
@@ -153,46 +158,3 @@ def split_by_max_cumulative_length(documents, allowed_size):
             current_size = allowed_size - document_size
     list_of_chunks.append(chunk)
     return list_of_chunks
-
-
-def get_current_time():
-    """Returns current time in rfc 3339 format"""
-    return (datetime.utcnow()).strftime(RFC_3339_DATETIME_FORMAT)
-
-
-def is_within_time_range(document, time_range):
-    """Check if document is created within time range or not.
-    :param document: dictionary of document from doc_id.json delete_keys.
-    :param time_range: datetime object limit for given document type(ex: one_month_ago or six_months_ago).
-    :returns: boolean to check if document is created within time range or not.
-    """
-    return (
-        datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < time_range
-    )
-
-
-def constraint_time_range(start_time, end_time, time_constraint, logger):
-    """Constraint the time range(i.e. start time and end time) based on the time_constraint passed.
-    If the start time or end time is before the allowed time constraint, then default the time range
-    according to the allowed time constraint)
-    :param start_time: datetime object for lower limit for data fetching.
-    :param end_time: datetime object for upper limit for data fetching.
-    :param time_constraint: datetime object containing the lower-bound for time-range.
-    :param logger: Logger object.
-    :returns: updated datetime string for start time and end time.
-    """
-    if start_time < time_constraint:
-        logger.warning(
-            f"Start time is lesser than the allowed limit. Expected allowed limit : {time_constraint}"
-            f" and found: {start_time}.\nSetting the start time to : {time_constraint}"
-        )
-        start_time = time_constraint
-    if end_time < time_constraint:
-        logger.warning(
-            f"End time is lesser than the allowed limit. Expected allowed limit : {time_constraint}"
-            f" and found: {end_time}.\nSetting the end time to : {datetime.utcnow()}"
-        )
-        end_time = datetime.utcnow()
-    start_time = start_time.strftime(RFC_3339_DATETIME_FORMAT)
-    end_time = end_time.strftime(RFC_3339_DATETIME_FORMAT)
-    return start_time, end_time
