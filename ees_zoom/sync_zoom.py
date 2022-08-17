@@ -249,24 +249,6 @@ class SyncZoom:
         channels_data = fetched_documents["data"]
         return channels_data
 
-    def get_files(self, chat_access_enabled_users, chats_files_object):
-        """This method fetches the files from Zoom server.
-        :param chat_access_enabled_users: list of user-ids which have chats-file:write permission.
-        :param chats_files_obj: ZoomChatMessages Object
-        :returns: list of files documents.
-        """
-        fetched_documents = []
-        files_schema = self.get_schema_fields(FILES)
-        fetched_documents = chats_files_object.get_files_details_documents(
-            users_data=chat_access_enabled_users,
-            files_schema=files_schema,
-            start_time=self.objects_time_range[FILES][0],
-            end_time=self.objects_time_range[FILES][1],
-            enable_permission=self.enable_permission,
-        )
-        files_data = fetched_documents["data"]
-        return files_data
-
     def perform_sync(self, parent_object, partitioned_users_list):
         """This method fetches all the objects from Zoom server and appends them to the
         shared queue and it returns list of locally stored details of documents fetched.
@@ -290,7 +272,7 @@ class SyncZoom:
                     self.zoom_client,
                     self.zoom_enterprise_search_mappings,
                 )
-                self.all_chat_access = roles_object.collect_chats_enabled_users_list()
+                self.all_chat_access = roles_object.fetch_chats_enabled_users_list()
                 if ROLES in self.configuration_objects:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {ROLES}."
@@ -380,10 +362,16 @@ class SyncZoom:
                         self.zoom_client,
                         self.zoom_enterprise_search_mappings,
                     )
-                    files_documents = self.get_files(
-                        chat_access_enabled_users,
-                        chats_files_object,
+                    fetched_documents = []
+                    files_schema = self.get_schema_fields(FILES)
+                    fetched_documents = chats_files_object.get_files_details_documents(
+                        users=chat_access_enabled_users,
+                        files_schema=files_schema,
+                        start_time=self.objects_time_range[FILES][0],
+                        end_time=self.objects_time_range[FILES][1],
+                        enable_permission=self.enable_permission,
                     )
+                    files_documents = fetched_documents["data"]
                     documents_to_index.extend(files_documents)
                     if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                         self.queue.append_to_queue(files_documents)

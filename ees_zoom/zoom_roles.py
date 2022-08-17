@@ -124,7 +124,7 @@ class ZoomRoles:
         )
         return member_ids
 
-    def collect_chats_enabled_users_list(self):
+    def fetch_chats_enabled_users_list(self):
         """This method will iterate over list of roles. In each iteration it will fetch privileges
         assigned to roles and members having that role. it will insert insert member id in the appropriate list
         according to conditions specified in if block.

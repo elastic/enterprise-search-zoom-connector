@@ -82,7 +82,7 @@ class ZoomChatMessages:
 
     def get_files_details_documents(
         self,
-        users_data,
+        users,
         files_schema,
         start_time,
         end_time,
@@ -90,7 +90,7 @@ class ZoomChatMessages:
     ):
         """This method will iterate over list of users and will get all the files sent by user,
         it will create files documents from the returned data ready to be indexed.
-        :param users_data: list of dictionary contains Users details.
+        :param users: list of dictionaries containing User details.
         :param files_schema: dictionary of fields to be indexed for Files.
         :param start_time: datetime object for lower limit for data fetching.
         :param end_time: datetime object for upper limit for data fetching.
@@ -102,7 +102,7 @@ class ZoomChatMessages:
                 start_time=start_time, end_time=end_time, time_constraint=TIME_CONSTRAINT_FOR_CHATS, logger=self.logger
             )
             files_documents = []
-            for user in users_data:
+            for user in users:
                 self.logger.info(
                     f"Thread: [{threading.get_ident()}] Attempting to extract file(s) for user {user}."
                 )
