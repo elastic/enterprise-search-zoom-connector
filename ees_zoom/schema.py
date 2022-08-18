@@ -60,7 +60,7 @@ schema = {
     },
     "objects": {
         "type": "dict",
-        "nullable": True,
+        "nullable": False,
         "schema": {
             "users": {
                 "type": "dict",
