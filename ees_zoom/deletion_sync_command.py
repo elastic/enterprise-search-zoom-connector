@@ -206,7 +206,7 @@ class DeletionSyncCommand(BaseCommand):
                 (MULTITHREADED_OBJECTS_FOR_DELETION,),
                 partitioned_users_buckets,
             )
-        except Exception as exception:
+        except Exception:
             self.logger.error(
                 f"Error while checking objects: {CHANNELS}, {RECORDINGS}, {CHATS} and {FILES} for deletion from zoom."
             )
