@@ -94,7 +94,7 @@ class DeletionSyncCommand(BaseCommand):
                     f"Unknown error occurred while performing deletion sync for"
                     f"{object_type} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
     def collect_deleted_roles_ids(self, roles_ids_list):
         """This function is used to collect document ids to be deleted from
@@ -118,7 +118,7 @@ class DeletionSyncCommand(BaseCommand):
                 self.logger.exception(
                     f"Unknown error occurred while performing deletion sync for {ROLES} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
     def collect_past_deleted_meetings(self, past_meetings_ids_list, delete_keys_list):
         """This function is used to collect document ids to be deleted from
@@ -144,13 +144,13 @@ class DeletionSyncCommand(BaseCommand):
                     # Append the deleted documents to the global_deletion_ids list which will be iterated to ensure those documents are deleted from the Enterprise Search as well
                     past_meetings_deletion_ids_list.append(past_meeting_id)
                 else:
-                    raise HTTPException
+                    raise
             except Exception as exception:
                 self.logger.exception(
                     f"Unknown error occurred while performing deletion sync for"
                     f"{PAST_MEETINGS} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
         for document in delete_keys_list:
             if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
@@ -210,7 +210,7 @@ class DeletionSyncCommand(BaseCommand):
             self.logger.error(
                 f"Error while checking objects: {CHANNELS}, {RECORDINGS}, {CHATS} and {FILES} for deletion from zoom."
             )
-            raise exception
+            raise
 
         fetched_objects_ids = [str(document["id"]) for document in global_keys]
 
