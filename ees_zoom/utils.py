@@ -140,3 +140,30 @@ def split_by_max_cumulative_length(documents, allowed_size):
             current_size = allowed_size - document_size
     list_of_chunks.append(chunk)
     return list_of_chunks
+
+
+def constraint_time_range(start_time, end_time, time_constraint, logger):
+    """Constraint the time range(i.e. start time and end time) based on the time_constraint passed.
+    If the start time or end time is before the allowed time constraint, then default the time range
+    according to the allowed time constraint)
+    :param start_time: datetime object for lower limit for data fetching.
+    :param end_time: datetime object for upper limit for data fetching.
+    :param time_constraint: datetime object containing the lower-bound for time-range.
+    :param logger: Logger object.
+    :returns: updated datetime string for start time and end time.
+    """
+    if start_time < time_constraint:
+        logger.warning(
+            f"Start time is lesser than the allowed limit. Expected allowed limit : {time_constraint}"
+            f" and found: {start_time}.\nSetting the start time to : {time_constraint}"
+        )
+        start_time = time_constraint
+    if end_time < time_constraint:
+        logger.warning(
+            f"End time is lesser than the allowed limit. Expected allowed limit : {time_constraint}"
+            f" and found: {end_time}.\nSetting the end time to : {datetime.utcnow()}"
+        )
+        end_time = datetime.utcnow()
+    start_time = start_time.strftime(RFC_3339_DATETIME_FORMAT)
+    end_time = end_time.strftime(RFC_3339_DATETIME_FORMAT)
+    return start_time, end_time
