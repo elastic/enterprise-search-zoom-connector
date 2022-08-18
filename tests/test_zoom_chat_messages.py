@@ -27,11 +27,19 @@ CONFIG_FILE = os.path.join(
     os.path.join(os.path.dirname(__file__), "config"),
     "zoom_connector.yml",
 )
+FILES = "files"
 CHATS = "chats"
 CHATS_SCHEMA = {
     "created_at": "date_time",
     "description": "message",
     "id": "id",
+}
+FILES_SCHEMA = {
+    "created_at": "date_time",
+    "id": "file_id",
+    "size": "file_size",
+    "title": "file_name",
+    "url": "download_url",
 }
 
 

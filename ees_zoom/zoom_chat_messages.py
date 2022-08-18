@@ -9,6 +9,7 @@ the all_chat_access list and will create documents from the fetched responses.
 import threading
 from datetime import datetime
 
+import requests
 from dateutil.relativedelta import relativedelta
 
 from .constant import CHATS, FILES
