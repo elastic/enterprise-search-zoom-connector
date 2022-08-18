@@ -8,7 +8,7 @@ It's possible to run full syncs and incremental syncs with this module."""
 import threading
 
 from .adapter import DEFAULT_SCHEMA
-from .constant import (CHANNELS, CHATS, GROUPS, MEETINGS, PAST_MEETINGS,
+from .constant import (CHANNELS, CHATS, FILES, GROUPS, MEETINGS, PAST_MEETINGS,
                        RECORDINGS, ROLES, USERS)
 from .utils import split_list_into_buckets
 from .zoom_channels import ZoomChannels
@@ -347,7 +347,7 @@ class SyncZoom:
                     if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
                         self.queue.append_to_queue(channels_documents)
 
-                if CHATS in self.configuration_objects:
+                if CHATS in self.configuration_objects or FILES in self.configuration_objects:
                     user_ids_list = []
                     for user in partitioned_users_list:
                         user_ids_list.append(user["id"])
@@ -362,19 +362,34 @@ class SyncZoom:
                         self.zoom_client,
                         self.zoom_enterprise_search_mappings,
                     )
-                    fetched_documents = []
-                    chats_schema = self.get_schema_fields(CHATS)
-                    fetched_documents = chats_files_object.get_chat_messages(
-                        users_data=chat_access_enabled_users,
-                        chats_schema=chats_schema,
-                        start_time=self.objects_time_range[CHATS][0],
-                        end_time=self.objects_time_range[CHATS][1],
-                        enable_permission=self.enable_permission,
-                    )
-                    chats_documents = fetched_documents["data"]
-                    documents_to_index.extend(chats_documents)
-                    if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
-                        self.queue.append_to_queue(chats_documents)
+                    if CHATS in self.configuration_objects:
+                        fetched_documents = []
+                        chats_schema = self.get_schema_fields(CHATS)
+                        fetched_documents = chats_files_object.get_chat_messages(
+                            users_data=chat_access_enabled_users,
+                            chats_schema=chats_schema,
+                            start_time=self.objects_time_range[CHATS][0],
+                            end_time=self.objects_time_range[CHATS][1],
+                            enable_permission=self.enable_permission,
+                        )
+                        chats_documents = fetched_documents["data"]
+                        documents_to_index.extend(chats_documents)
+                        if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
+                            self.queue.append_to_queue(chats_documents)
+                    if FILES in self.configuration_objects:
+                        fetched_documents = []
+                        files_schema = self.get_schema_fields(FILES)
+                        fetched_documents = chats_files_object.get_files_details_documents(
+                            users=chat_access_enabled_users,
+                            files_schema=files_schema,
+                            start_time=self.objects_time_range[FILES][0],
+                            end_time=self.objects_time_range[FILES][1],
+                            enable_permission=self.enable_permission,
+                        )
+                        files_documents = fetched_documents["data"]
+                        documents_to_index.extend(files_documents)
+                        if parent_object != MULTITHREADED_OBJECTS_FOR_DELETION:
+                            self.queue.append_to_queue(files_documents)
         except Exception as exception:
             self.logger.error(
                 f"{[threading.get_ident()]} Error while fetching objects. Error: {exception}"

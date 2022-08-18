@@ -9,9 +9,14 @@ import time
 import urllib.parse
 from datetime import datetime
 
+import tika
+from requests.exceptions import ReadTimeout
 from tika import parser
+from urllib3.exceptions import ReadTimeoutError
 
 from .constant import RFC_3339_DATETIME_FORMAT
+
+TIKA_TIMEOUT = 60  # Timeout in seconds
 
 
 class RetryCountExceededException(Exception):
@@ -25,15 +30,28 @@ class RetryCountExceededException(Exception):
         super().__init__(message)
 
 
-def extract(content):
+def extract(content, document_name, logger, retry_count):
     """Extracts the contents
     :param content: content to be extracted
     Returns:
         parsed_test: parsed text
     """
-    parsed = parser.from_buffer(content)
-    parsed_text = parsed["content"]
-    return parsed_text
+    while retry_count:
+        try:
+            parsed = parser.from_buffer(
+                content, requestOptions={"timeout": TIKA_TIMEOUT}
+            )
+            return parsed["content"]
+        except (ReadTimeoutError, ReadTimeout):
+            logger.error(
+                f"Tika timeout while parsing the content for {document_name}. Retrying.."
+            )
+        except (ConnectionError, RuntimeError):
+            logger.error("Could not reach Tika server. Retrying...")
+            tika.initVM()
+        finally:
+            retry_count -= 1
+    return ""
 
 
 def url_encode(object_name):
