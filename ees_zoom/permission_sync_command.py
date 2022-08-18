@@ -85,7 +85,7 @@ class PermissionSyncCommand(BaseCommand):
                 if zoom_user in role_members_ids:
                     for enterprise_search_user in enterprise_search_users:
                         role_permissions.append(enterprise_search_user)
-                        self.workplace_search_custom_client.add_permissions(
+                        self.workplace_search_client.add_permissions(
                             enterprise_search_user, role_permissions
                         )
 
