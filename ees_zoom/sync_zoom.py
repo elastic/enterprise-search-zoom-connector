@@ -272,7 +272,7 @@ class SyncZoom:
                     self.zoom_client,
                     self.zoom_enterprise_search_mappings,
                 )
-                self.all_chat_access = roles_object.fetch_chats_enabled_users_list()
+                self.all_chat_access = roles_object.fetch_user_ids_with_chat_access()
                 if ROLES in self.configuration_objects:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {ROLES}."

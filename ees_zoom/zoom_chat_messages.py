@@ -48,7 +48,7 @@ class ZoomChatMessages:
             self.logger.exception(
                 f"Unknown error occurred while fetching file(s) from Zoom: {exception}"
             )
-            raise exception
+            raise
         return user_files
 
     @retry(
@@ -151,9 +151,9 @@ class ZoomChatMessages:
             self.logger.error(
                 f"Error {key_error_exception} occurred while generating file(s) documents."
             )
-            raise key_error_exception
+            raise
         except Exception as exception:
             self.logger.error(
                 f"Error {exception} occurred while generating file(s) documents."
             )
-            raise exception
+            raise
