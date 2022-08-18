@@ -81,7 +81,7 @@ class ZoomRoles:
             self.logger.error(
                 f"Error {key_error_exception} occurred while generating roles documents."
             )
-            raise key_error_exception
+            raise
 
     def fetch_role_permissions(self, role_id):
         """This function will fetch all the permissions using role id.
@@ -124,11 +124,9 @@ class ZoomRoles:
         )
         return member_ids
 
-    def fetch_chats_enabled_users_list(self):
-        """This method will iterate over list of roles. In each iteration it will fetch privileges
-        assigned to roles and members having that role. it will insert insert member id in the appropriate list
-        according to conditions specified in if block.
-        :returns: list containing user ids(member ids) which have global access to particular object.
+    def fetch_user_ids_with_chat_access(self):
+        """This method will fetch the userID of users having read access for chat messages.
+        :returns: list containing userIDs of users having read access for chat messages.
         """
         self.set_list_of_roles_from_zoom()
         chat_permission_users_list = []

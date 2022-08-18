@@ -15,6 +15,7 @@ from .constant import CHATS
 from .utils import constraint_time_range
 
 TIME_CONSTRAINT_FOR_CHATS = (datetime.utcnow()) + relativedelta(months=-6, days=+4)
+CHATS_URL = "https://zoom.us/account/archivemsg/search#/list"
 
 
 class ZoomChatMessages:
@@ -48,7 +49,7 @@ class ZoomChatMessages:
             self.logger.exception(
                 f"Unknown error occurred while fetching chats from Zoom: {exception}"
             )
-            raise exception
+            raise
         self.logger.info(
             f"Thread: [{threading.get_ident()}] Fetched total : {len(user_chats)} chat(s) for {user_id}."
         )
@@ -73,6 +74,7 @@ class ZoomChatMessages:
         """
         try:
             chats_documents = []
+            chats_documents_ids = []
             start_time, end_time = constraint_time_range(
                 start_time=start_time, end_time=end_time, time_constraint=TIME_CONSTRAINT_FOR_CHATS, logger=self.logger
             )
@@ -84,17 +86,13 @@ class ZoomChatMessages:
                 chats_list = self.get_chats_from_user_id(user, start_time, end_time)
                 for chat in chats_list:
                     # skipping the chat if it's already fetched by any previous user id.
-                    if any(
-                        document["id"] == chat["id"] for document in chats_documents
-                    ):
+                    if chat["id"] in chats_documents_ids:
                         continue
                     chat_document = {"type": CHATS, "parent_id": user}
                     for ws_field, zoom_fields in chats_schema.items():
                         chat_document[ws_field] = chat[zoom_fields]
                     chat_document["body"] = f"Message : {chat['message']}"
-                    chat_document[
-                        "url"
-                    ] = "https://zoom.us/account/archivemsg/search#/list"
+                    chat_document["url"] = CHATS_URL
                     if enable_permission:
                         permission_list = ["ChatMessage:Read"]
                         permission_list.extend(
@@ -102,6 +100,7 @@ class ZoomChatMessages:
                         )
                         chat_document["_allow_permissions"] = permission_list
                     chats_documents.append(chat_document)
+                    chats_documents_ids.append(chat_document["id"])
             self.logger.info(
                 f"Thread: [{threading.get_ident()}] Fetched total {len(chats_documents)} chat(s) documents."
             )
@@ -110,4 +109,4 @@ class ZoomChatMessages:
             self.logger.error(
                 f"Error {exception} occurred while generating chat(s) documents."
             )
-            raise exception
+            raise
