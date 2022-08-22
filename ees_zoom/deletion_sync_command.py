@@ -3,10 +3,9 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to remove recently deleted documents from Elastic Enterprise Search.
-
-    Documents that were deleted in source will still be available in
-    Elastic Enterprise Search until a full sync happens, or until this module is used.
+""" This module allows to remove recently deleted documents from Elastic Enterprise Search.
+    Documents that were deleted in Zoom will still be available in Elastic Enterprise Search
+    until this module is used.
 """
 
 from datetime import datetime
@@ -15,7 +14,7 @@ import requests
 from iteration_utilities import unique_everseen
 
 from .base_command import BaseCommand
-from .constant import (BATCH_SIZE, CHANNELS, GROUPS, MEETINGS,
+from .constant import (BATCH_SIZE, CHANNELS, CHATS, FILES, GROUPS, MEETINGS,
                        PAST_MEETINGS, RECORDINGS, RFC_3339_DATETIME_FORMAT,
                        ROLES, USERS)
 from .sync_zoom import SyncZoom
@@ -23,8 +22,9 @@ from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
+ROLES_FOR_DELETION = "roles_for_deletion"
 # few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
-TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, RECORDINGS]
+TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
 
 
 class DeletionSyncCommand(BaseCommand):
@@ -94,7 +94,7 @@ class DeletionSyncCommand(BaseCommand):
                     f"Unknown error occurred while performing deletion sync for"
                     f"{object_type} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
     def collect_deleted_roles_ids(self, roles_ids_list):
         """This function is used to collect document ids to be deleted from
@@ -118,7 +118,7 @@ class DeletionSyncCommand(BaseCommand):
                 self.logger.exception(
                     f"Unknown error occurred while performing deletion sync for {ROLES} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
     def collect_past_deleted_meetings(self, past_meetings_ids_list, delete_keys_list):
         """This function is used to collect document ids to be deleted from
@@ -144,13 +144,13 @@ class DeletionSyncCommand(BaseCommand):
                     # Append the deleted documents to the global_deletion_ids list which will be iterated to ensure those documents are deleted from the Enterprise Search as well
                     past_meetings_deletion_ids_list.append(past_meeting_id)
                 else:
-                    raise HTTPException
+                    raise
             except Exception as exception:
                 self.logger.exception(
                     f"Unknown error occurred while performing deletion sync for"
                     f"{PAST_MEETINGS} from zoom. Error: {exception}"
                 )
-                raise exception
+                raise
 
         for document in delete_keys_list:
             if document["type"] == PAST_MEETINGS and document["parent_id"] in past_meetings_deletion_ids_list:
@@ -161,29 +161,33 @@ class DeletionSyncCommand(BaseCommand):
         channels_and_recordings_ids,
     ):
         """This function is used to collect document ids to be deleted from
-        enterprise-search for channels, and recordings object.
-        :param channels_and_recordings_ids: list of channels, and recordings ids which are present in enterprise-search.
+        enterprise-search for channels, recordings, chats and files object.
+        :param channels_and_recordings_ids: list of channels, recording, chat
+        and file documents ids.
+        which are present in enterprise-search.
         """
         self.logger.info(
             "Started collecting object_ids to be deleted from enterprise search for:"
-            f" {CHANNELS} and {RECORDINGS}"
+            f" {CHANNELS}, {RECORDINGS}, {CHATS} and {FILES}"
         )
         try:
             objects_time_range = {}
-            objects_time_range[RECORDINGS] = [
-                (
-                    datetime.strptime(
-                        self.start_time,
-                        RFC_3339_DATETIME_FORMAT,
-                    )
-                ),
-                (
-                    datetime.strptime(
-                        self.end_time,
-                        RFC_3339_DATETIME_FORMAT,
-                    )
-                ),
-            ]
+            for time_dependent_object in self.config.get_value("objects"):
+                if time_dependent_object in [RECORDINGS, CHATS, FILES]:
+                    objects_time_range[time_dependent_object] = [
+                        (
+                            datetime.strptime(
+                                self.start_time,
+                                RFC_3339_DATETIME_FORMAT,
+                            )
+                        ),
+                        (
+                            datetime.strptime(
+                                self.end_time,
+                                RFC_3339_DATETIME_FORMAT,
+                            )
+                        ),
+                    ]
 
             sync_zoom = SyncZoom(
                 self.config,
@@ -195,17 +199,18 @@ class DeletionSyncCommand(BaseCommand):
                 {},
             )
             partitioned_users_buckets = sync_zoom.get_all_users_from_zoom()
+            _ = sync_zoom.perform_sync(ROLES_FOR_DELETION, [{}])
             global_keys = self.create_and_execute_jobs(
                 self.zoom_sync_thread_count,
                 sync_zoom.perform_sync,
                 (MULTITHREADED_OBJECTS_FOR_DELETION,),
                 partitioned_users_buckets,
             )
-        except Exception as exception:
+        except Exception:
             self.logger.error(
-                f"Error while checking objects: {CHANNELS}, and {RECORDINGS} for deletion from zoom."
+                f"Error while checking objects: {CHANNELS}, {RECORDINGS}, {CHATS} and {FILES} for deletion from zoom."
             )
-            raise exception
+            raise
 
         fetched_objects_ids = [str(document["id"]) for document in global_keys]
 
@@ -226,6 +231,8 @@ class DeletionSyncCommand(BaseCommand):
             PAST_MEETINGS: [],
             CHANNELS: [],
             RECORDINGS: [],
+            CHATS: [],
+            FILES: [],
         }
         for document in ids_collection["delete_keys"]:
             if document["type"] in [ROLES, GROUPS, USERS, CHANNELS]:
@@ -261,7 +268,7 @@ class DeletionSyncCommand(BaseCommand):
                     )
 
         channels_and_recordings_ids = []
-        for object_type in [CHANNELS, RECORDINGS]:
+        for object_type in [CHANNELS, CHATS, FILES, RECORDINGS]:
             if object_type in self.configuration_objects and delete_key_ids[object_type]:
                 channels_and_recordings_ids.extend(delete_key_ids[object_type])
 

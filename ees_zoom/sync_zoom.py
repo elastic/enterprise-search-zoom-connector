@@ -21,6 +21,7 @@ from .zoom_roles import ZoomRoles
 from .zoom_users import ZoomUsers
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
+ROLES_FOR_DELETION = "roles_for_deletion"
 
 
 class SyncZoom:
@@ -265,7 +266,7 @@ class SyncZoom:
         try:
             documents_to_index = []
             ids_storage = []
-            if parent_object == ROLES:
+            if parent_object == ROLES or parent_object == ROLES_FOR_DELETION:
                 roles_object = ZoomRoles(
                     self.config,
                     self.logger,
@@ -273,14 +274,14 @@ class SyncZoom:
                     self.zoom_enterprise_search_mappings,
                 )
                 self.all_chat_access = roles_object.fetch_user_ids_with_chat_access()
-                if ROLES in self.configuration_objects:
+                if ROLES in self.configuration_objects and parent_object != ROLES_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {ROLES}."
                     )
                     documents_to_index.extend(
                         self.fetch_roles_and_append_to_queue(roles_object)
                     )
-                if GROUPS in self.configuration_objects:
+                if GROUPS in self.configuration_objects and parent_object != ROLES_FOR_DELETION:
                     self.logger.info(
                         f"Thread: [{threading.get_ident()}] fetching {GROUPS}."
                     )
