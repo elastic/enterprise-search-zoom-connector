@@ -62,10 +62,14 @@ class PermissionSyncCommand(BaseCommand):
                 permission_list = user_permission["results"]
                 for permission in permission_list:
                     self.workplace_search_client.remove_permissions(permission)
+        except ValueError as error:
+            self.logger.error(f"Enterprise search client is not created due to invalid configuration. Error: {error}")
+            raise
         except Exception as exception:
             self.logger.exception(
                 f"Error while removing the permissions from the workplace. Error: {exception}"
             )
+            raise
 
     def set_permissions_list(self, mappings):
         """Method fetches roles and its members from zoom along with list of permissions associated with each
