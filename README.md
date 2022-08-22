@@ -673,7 +673,7 @@ chat_channel:read:admin
 role:read:admin
 recording:read:admin
 group:read:admin
-chat_message:read:admin
+chat_messages:read:admin
 report:read:admin
 ```
 - The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
