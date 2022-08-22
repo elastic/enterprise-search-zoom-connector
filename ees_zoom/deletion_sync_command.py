@@ -19,7 +19,7 @@ from .constant import (BATCH_SIZE, CHANNELS, CHATS, FILES, GROUPS, MEETINGS,
                        PAST_MEETINGS, RECORDINGS, RFC_3339_DATETIME_FORMAT,
                        ROLES, USERS)
 from .sync_zoom import SyncZoom
-from .utils import (get_current_time, is_within_time_range,
+from .utils import (get_current_time,
                     split_documents_into_equal_chunks)
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
@@ -259,9 +259,7 @@ class DeletionSyncCommand(BaseCommand):
         ) + relativedelta(months=-1, days=+2)
         documents_list_to_omit = []
         for document in storage_with_collection["delete_keys"]:
-            if document["type"] in [CHATS, FILES] and is_within_time_range(
-                document, six_months_ago
-            ):
+            if document["type"] in [CHATS, FILES] and datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < six_months_ago:
                 documents_list_to_omit.extend(
                     self.omitted_document(
                         document,
@@ -270,9 +268,7 @@ class DeletionSyncCommand(BaseCommand):
                         "SIX_MONTHS",
                     )
                 )
-            elif document["type"] in [RECORDINGS, PAST_MEETINGS, MEETINGS] and is_within_time_range(
-                document, one_month_ago
-            ):
+            elif document["type"] in [RECORDINGS, PAST_MEETINGS, MEETINGS] and datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < one_month_ago:
                 documents_list_to_omit.extend(
                     self.omitted_document(
                         document,

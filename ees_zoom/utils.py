@@ -160,17 +160,6 @@ def split_by_max_cumulative_length(documents, allowed_size):
     return list_of_chunks
 
 
-def is_within_time_range(document, time_range):
-    """Check if document is created within time range or not.
-    :param document: dictionary of document from doc_id.json delete_keys.
-    :param time_range: datetime object limit for given document type(ex: one_month_time or six_months_time).
-    :returns: boolean to check if document is created within time range or not.
-    """
-    return (
-        datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < time_range
-    )
-
-
 def constraint_time_range(start_time, end_time, time_constraint, logger):
     """Constraint the time range(i.e. start time and end time) based on the time_constraint passed.
     If the start time or end time is before the allowed time constraint, then default the time range
