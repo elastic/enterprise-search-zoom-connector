@@ -222,9 +222,10 @@ Configure the log level using the [`log_level` setting](#log_level).
 
 Use a job scheduler, such as `cron`, to run the various [sync commands](#command-line-interface-cli) as recurring syncs.
 
-The following is an example crontab file:
+The following is an example crontab file in linux:
 
 ```crontab
+PATH=/home/<user_name>/.local/bin
 0 */2 * * * ees_zoom -c ~/config.yml incremental-sync >>~/incremental-sync.log 2>&1
 0 0 */2 * * ees_zoom -c ~/config.yml full-sync >>~/full-sync.log 2>&1
 0 * * * * ees_zoom -c ~/config.yml deletion-sync >>~/deletion-sync.log 2>&1
@@ -244,8 +245,10 @@ Using flock ensures the next scheduled cron runs only after the current one has 
 Let's consider an example of running incremental-sync as a cron job with flock:
 
 ```crontab
-0 */2 * * * /usr/bin/flock -w 0 /var/cron.lock ees_zoom -c ~/config.yml incremental-sync >>~/incremental-sync.log 2>&1
+0 */2 * * * /usr/bin/flock -w 0 /var/cron_indexing.lock ees_zoom -c ~/config.yml incremental-sync >>~/incremental-sync.log 2>&1
 ```
+
+Note: If the flock is added for multiple commands in crontab, make sure you mention different lock names(eg: /var/cron_indexing.lock in the above example) for each job else the execution of one command will prevent other command to execute.
 
 ## Troubleshooting
 
