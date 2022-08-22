@@ -181,44 +181,31 @@ class ZoomClient:
         next_page_token = True
         api_response = []
 
-        try:
-            while next_page_token:
-                url = f"{ZOOM_BASE_URL}{end_point}"
-                if next_page_token is not True:
-                    url = f"{url}&next_page_token={next_page_token}"
-                headers = {
-                    "authorization": f"Bearer {self.access_token}",
-                    "content-type": "application/json",
-                }
+        while next_page_token:
+            url = f"{ZOOM_BASE_URL}{end_point}"
+            if next_page_token is not True:
+                url = f"{url}&next_page_token={next_page_token}"
+            headers = {
+                "authorization": f"Bearer {self.access_token}",
+                "content-type": "application/json",
+            }
 
-                response = requests.get(url=url, headers=headers)
+            response = requests.get(url=url, headers=headers)
 
-                if response and response.status_code == 200:
-                    response = json.loads(response.text)
-                    if key == "past_meetings":
-                        return response
-                    if response.get(key):
-                        api_response.extend(response[key])
-                    next_page_token = (
-                        response.get("next_page_token") if is_paginated else None
-                    )
-                # Getting error code 400 but the zoom api documentation is suggesting error code 300
-                elif key == "privileges" and response.status_code in [300, 400]:
-                    raise requests.exceptions.HTTPError(response=response)
-                elif response.status_code == 401:
-                    self.ensure_token_valid()
-                else:
-                    response.raise_for_status()
-        except (
-            requests.exceptions.HTTPError,
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-        ) as exception:
-            self.logger.exception(
-                f"HTTP Error occurred while fetching response for {end_point} "
-                f"from Zoom. Error: {exception}"
-            )
-            raise exception
-        except Exception as exception:
-            raise exception
+            if response and response.status_code == 200:
+                response = json.loads(response.text)
+                if key == "past_meetings":
+                    return response
+                if response.get(key):
+                    api_response.extend(response[key])
+                next_page_token = (
+                    response.get("next_page_token") if is_paginated else None
+                )
+            # Getting error code 400 but the zoom api documentation is suggesting error code 300
+            elif key == "privileges" and response.status_code in [300, 400]:
+                raise requests.exceptions.HTTPError(response=response)
+            elif response.status_code == 401:
+                self.ensure_token_valid()
+            else:
+                response.raise_for_status()
         return api_response
