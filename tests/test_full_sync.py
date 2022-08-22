@@ -45,7 +45,7 @@ def test_start_producer(mock1, mock2):
     full.zoom_client.ensure_token_valid = Mock()
     mock2.return_value = MagicMock()
     full.start_producer(queue)
-    time_independent_objects = ["roles", "groups"]
+    time_independent_objects = ["roles", "groups", "channels"]
     object_types_count = 0
     object_types_count = sum(
         object not in time_independent_objects for object in config.get_value("objects")
