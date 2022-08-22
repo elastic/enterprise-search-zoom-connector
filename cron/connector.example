@@ -1,4 +1,9 @@
-0 */2 * * * ees_zoom -c ~/config.yml incremental-sync >> ~/incremental-sync.log 2>&1
-0 0 */2 * * ees_zoom -c ~/config.yml full-sync >> ~/full-sync.log 2>&1
-0 * * * * ees_zoom -c ~/config.yml deletion-sync >> ~/deletion-sync.log 2>&1
-*/5 * * * * ees_zoom -c ~/config.yml permission-sync >> ~/permission-sync.log 2>&1
+# Path to the environment's bin directory where the connector package and flock were installed.
+# For Linux uncomment the below line:
+# PATH=/usr/bin:/home/<user_name>/.local/bin
+# For macOS uncomment the below line:
+# PATH=/usr/local/opt/util-linux/bin:/Users/<user_name>/Library/Python/3.8/bin
+0 */2 * * * flock -w 0 /var/zoom_cron_incremental-sync.lock ees_zoom -c ~/config.yml incremental-sync >> ~/incremental-sync.log 2>&1
+0 0 */2 * * flock -w 0 /var/zoom_cron_full-sync.lock ees_zoom -c ~/config.yml full-sync >> ~/full-sync.log 2>&1
+0 * * * * flock -w 0 /var/zoom_cron_deletion-sync.lock ees_zoom -c ~/config.yml deletion-sync >> ~/deletion-sync.log 2>&1
+*/5 * * * * flock -w 0 /var/zoom_cron_permission-sync.lock ees_zoom -c ~/config.yml permission-sync >> ~/permission-sync.log 2>&1
