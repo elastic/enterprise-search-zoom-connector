@@ -690,3 +690,109 @@ def test_collect_channels_and_recordings_ids_negative(
 
     # Assert
     assert [] == deletion.global_deletion_ids
+
+
+@pytest.mark.parametrize(
+    "objects_ids_list, response_list, deletion_response",
+    [
+        (
+            ["844424930334011", "844424930334012", "844424930334013"],
+            [
+                {
+                    "id": "844424930334011",
+                    "type": "chats",
+                    "parent_id": "",
+                    "created_at": "",
+                },
+                {
+                    "id": "844424930334012",
+                    "type": "files",
+                    "parent_id": "abcd1234",
+                    "created_at": "",
+                },
+            ],
+            ["844424930334013"],
+        )
+    ],
+)
+@patch.object(SyncZoom, "perform_sync")
+def test_collect_chats_and_files_ids_positive(
+    mock1,
+    requests_mock,
+    objects_ids_list,
+    response_list,
+    deletion_response,
+):
+    """Test that deletion_sync_command deletes chats and files object from Enterprise Search.
+    :param mock1: patch object for perform_sync method.
+    :param requests_mock: fixture for requests.get calls.
+    :param objects_ids_list: list of objects ids deleted from zoom.
+    :param response_list: list of dictionary of mocked api response.
+    :param deletion_response: list of deleted documents ids.
+    """
+    # Setup
+    _, _ = settings(requests_mock)
+    args = get_args("DeletionSyncCommand")
+    deletion = DeletionSyncCommand(args)
+    mock1.return_value = [response_list]
+    deletion.create_and_execute_jobs = Mock(return_value=response_list)
+    SyncZoom.get_all_users_from_zoom = Mock()
+    deletion.zoom_client.ensure_token_valid()
+
+    # Execute
+    deletion.collect_channels_and_recordings_ids(objects_ids_list)
+
+    # Assert
+    assert deletion.global_deletion_ids == deletion_response
+
+
+@pytest.mark.parametrize(
+    "objects_ids_list, response_list",
+    [
+        (
+            ["844424930334011", "844424930334012"],
+            [
+                {
+                    "id": "844424930334011",
+                    "type": "chats",
+                    "parent_id": "",
+                    "created_at": "",
+                },
+                {
+                    "id": "844424930334012",
+                    "type": "files",
+                    "parent_id": "abcd1234",
+                    "created_at": "",
+                },
+            ],
+        )
+    ],
+)
+@patch.object(SyncZoom, "perform_sync")
+def test_collect_chats_and_files_ids_negative(
+    mock1,
+    requests_mock,
+    objects_ids_list,
+    response_list,
+):
+    """Test that deletion_sync_command won't delete chats and files object from Enterprise Search
+    if it exist in Zoom.
+    :param mock1: patch object for perform_sync method.
+    :param requests_mock: fixture for requests.get calls.
+    :param objects_ids_list: list of objects ids deleted from zoom.
+    :param response_list: list of dictionary of mocked api response.
+    """
+    # Setup
+    _, _ = settings(requests_mock)
+    args = get_args("DeletionSyncCommand")
+    deletion = DeletionSyncCommand(args)
+    mock1.return_value = [response_list]
+    deletion.create_and_execute_jobs = Mock(return_value=response_list)
+    SyncZoom.get_all_users_from_zoom = Mock()
+    deletion.zoom_client.ensure_token_valid()
+
+    # Execute
+    deletion.collect_channels_and_recordings_ids(objects_ids_list)
+
+    # Assert
+    assert [] == deletion.global_deletion_ids
