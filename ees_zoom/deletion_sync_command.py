@@ -24,8 +24,8 @@ from .utils import (get_current_time,
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
 ROLES_FOR_DELETION = "roles_for_deletion"
-SIX_MONTHS = "six_months"
-ONE_MONTH = "one_month"
+CHATS_HISTORY_EXPIRATION_TIME = "six_months"
+MEETINGS_HISTORY_EXPIRATION_TIME = "one_month"
 # few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
 TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
 
@@ -235,7 +235,7 @@ class DeletionSyncCommand(BaseCommand):
         if document["parent_id"] not in deleted_ids_list:
             return [document]
         # This block will detect if more than 1 document of SIX_MONTHS limit object exist in storage or not.
-        if time_limit == SIX_MONTHS and chats_and_files_id.count(document["id"]) > 1:
+        if time_limit == CHATS_HISTORY_EXPIRATION_TIME and chats_and_files_id.count(document["id"]) > 1:
             return [document]
         return []
 
@@ -267,7 +267,7 @@ class DeletionSyncCommand(BaseCommand):
                         document,
                         deleted_ids_list,
                         chats_and_files_id,
-                        SIX_MONTHS,
+                        CHATS_HISTORY_EXPIRATION_TIME,
                     )
                 )
             elif document["type"] in [RECORDINGS, PAST_MEETINGS, MEETINGS] and datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < one_month_ago:
@@ -276,7 +276,7 @@ class DeletionSyncCommand(BaseCommand):
                         document,
                         deleted_ids_list,
                         [],
-                        ONE_MONTH,
+                        MEETINGS_HISTORY_EXPIRATION_TIME,
                     )
                 )
 
