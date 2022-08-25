@@ -11,6 +11,7 @@
 from datetime import datetime
 
 import requests
+from dateutil.relativedelta import relativedelta
 from iteration_utilities import unique_everseen
 
 from .base_command import BaseCommand
@@ -23,6 +24,8 @@ from .utils import (get_current_time,
 
 MULTITHREADED_OBJECTS_FOR_DELETION = "multithreaded_objects_for_deletion"
 ROLES_FOR_DELETION = "roles_for_deletion"
+CHATS_HISTORY_EXPIRATION_TIME = "six_months"
+MEETINGS_HISTORY_EXPIRATION_TIME = "one_month"
 # few zoom objects have a time limitation on their APIs. (For example meetings older than 1 month can't be fetched from the Zoom APIs)
 TIME_RANGE_LIMIT_OBJECTS = [MEETINGS, PAST_MEETINGS, CHATS, FILES, RECORDINGS]
 
@@ -218,6 +221,73 @@ class DeletionSyncCommand(BaseCommand):
             if str(doc_id) not in fetched_objects_ids:
                 self.global_deletion_ids.append(str(doc_id))
 
+    def omitted_document(
+        self, document, deleted_ids_list, chats_and_files_id, time_limit
+    ):
+        """This method will return object document list if object document is archived by the Zoom APIs.
+        :param document: dictionary of object document present in delete_keys of doc_id storage.
+        :param deleted_ids_list: list of ids for deleted objects ids.
+        :param chats_and_files_id: chats and files documents ids present in delete_keys of doc_id.json file.
+        :param time_limit: string of time-limit type.(ex: six_months_ago or one_month_ago)
+        :returns: it will return list of document dictionary if document is archived.
+        """
+        # This block will detect if the parent user of an object is deleted from Zoom or not.
+        if document["parent_id"] not in deleted_ids_list:
+            return [document]
+        # This block will detect if more than 1 document of SIX_MONTHS limit object exist in storage or not.
+        if time_limit == CHATS_HISTORY_EXPIRATION_TIME and chats_and_files_id.count(document["id"]) > 1:
+            return [document]
+        return []
+
+    def refresh_storage(self, deleted_ids_list, chats_and_files_id):
+        """This method is used to refresh the ids stored in doc_id.json file.
+        It will omit the documents from the delete_keys of doc_id.json file
+        for the time restricted objects if they can't be fetched from the Zoom API endpoints and
+        it will return updated storage collection of of doc_id.json file.
+        :param deleted_ids_list: list of ids for deleted objects ids.
+        :param chats_and_files_id: list of chats and files documents ids present in delete_keys of doc_id.json file.
+        :returns: storage collection of of doc_id.json file.
+        """
+        storage_with_collection = self.local_storage.load_storage()
+        # chats and files objects older than last six months can't be fetched from the Zoom APIs
+        six_months_ago = datetime.strptime(
+            get_current_time(),
+            RFC_3339_DATETIME_FORMAT,
+        ) + relativedelta(days=-180)
+        # recordings, meetings and past_meetings objects older than last month can't be fetched from the Zoom API
+        one_month_ago = datetime.strptime(
+            get_current_time(),
+            RFC_3339_DATETIME_FORMAT,
+        ) + relativedelta(days=-30)
+        documents_list_to_omit = []
+        for document in storage_with_collection["delete_keys"]:
+            if document["type"] in [CHATS, FILES] and datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < six_months_ago:
+                documents_list_to_omit.extend(
+                    self.omitted_document(
+                        document,
+                        deleted_ids_list,
+                        chats_and_files_id,
+                        CHATS_HISTORY_EXPIRATION_TIME,
+                    )
+                )
+            elif document["type"] in [RECORDINGS, PAST_MEETINGS, MEETINGS] and datetime.strptime(document["created_at"], RFC_3339_DATETIME_FORMAT) < one_month_ago:
+                documents_list_to_omit.extend(
+                    self.omitted_document(
+                        document,
+                        deleted_ids_list,
+                        [],
+                        MEETINGS_HISTORY_EXPIRATION_TIME,
+                    )
+                )
+
+        for document in documents_list_to_omit:
+            storage_with_collection["delete_keys"].remove(document)
+            storage_with_collection["global_keys"].remove(document)
+
+        self.local_storage.update_storage(storage_with_collection)
+
+        return storage_with_collection
+
     def execute(self):
         """Runs the deletion sync logic"""
         logger = self.logger
@@ -235,7 +305,7 @@ class DeletionSyncCommand(BaseCommand):
             FILES: [],
         }
         for document in ids_collection["delete_keys"]:
-            if document["type"] in [ROLES, GROUPS, USERS, CHANNELS]:
+            if document["type"] in [ROLES, GROUPS, USERS, CHANNELS, CHATS, FILES]:
                 delete_key_ids[document["type"]].append(document["id"])
         if ROLES in self.configuration_objects and delete_key_ids[ROLES]:
             self.collect_deleted_roles_ids(delete_key_ids[ROLES])
@@ -245,8 +315,17 @@ class DeletionSyncCommand(BaseCommand):
             ):
                 self.collect_deleted_ids(delete_key_ids[object_type], object_type)
 
-        storage_with_collection = self.local_storage.load_storage()
+        chats_and_files_id = delete_key_ids[CHATS] + delete_key_ids[FILES]
+        storage_with_collection = self.refresh_storage(
+            self.global_deletion_ids, chats_and_files_id
+        )
 
+        (
+            delete_key_ids[CHATS],
+            delete_key_ids[FILES],
+        ) = ([], [])
+
+        # collecting the time range limit objects ids after refreshing the local storage.
         for document in storage_with_collection["delete_keys"]:
             if document["type"] in TIME_RANGE_LIMIT_OBJECTS:
                 delete_key_ids[document["type"]].append(
