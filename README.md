@@ -323,6 +323,11 @@ The following sections provide solutions for issues related to syncing.
 
   - To avoid this issue, the user should run the Zoom Connector `deletion-sync` functionality at least once every 30 days, so that all the deleted data from the Zoom app will also be deleted from Enterprise Search.
 
+#### **Checkpoint Policy:**
+
+  - The connector saves the `checkpoint` as a current time after each iteration of indexing.
+  - In case of any intermediate errors while indexing, the `checkpoint` will still be saved as the current time since the documents missed as a part of the current incremental sync should be indexed in the next full sync.
+
 ## Advanced usage
 
 The following sections cover additional features that are not covered by the basic usage described above.

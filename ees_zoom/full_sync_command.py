@@ -106,14 +106,20 @@ class FullSyncCommand(BaseCommand):
         generated_documents_ids, indexed_documents_ids = self.create_and_execute_jobs(
             thread_count, sync_es.perform_sync, (), None
         )
-        if not sync_es.is_error_ocurred:
-            for checkpoint_item in sync_es.checkpoints:
-                checkpoint.set_checkpoint(
-                    checkpoint_item[0], checkpoint_item[1], checkpoint_item[2]
-                )
+        for checkpoint_item in sync_es.checkpoints:
+            checkpoint.set_checkpoint(
+                current_time=checkpoint_item[0],
+                index_type=checkpoint_item[1],
+                obj_type=checkpoint_item[2],
+            )
         self.logger.info(
             f"SUMMARY : Total {len(indexed_documents_ids)} documents indexed out of {len(generated_documents_ids)}"
         )
+        if sync_es.error_count:
+            self.logger.debug(
+                f"Total {sync_es.error_count} documents were not successfully indexed due to the errors."
+                " The connector will attempt to index all the documents again in the next full-sync run."
+            )
         self.local_storage.store_indexed_documents_ids(
             metadata_of_fetched_documents, indexed_documents_ids
         )

@@ -35,7 +35,7 @@ class SyncEnterpriseSearch:
         self.total_document_indexed = 0
         self.total_documents_found = 0
         self.checkpoints = []
-        self.is_error_ocurred = False
+        self.error_count = 0
         self.max_allowed_bytes = 10000000
 
     def index_documents(self, documents):
@@ -54,6 +54,7 @@ class SyncEnterpriseSearch:
                     documents_indexed += 1
                     self.indexed_documents_ids.add(document["id"])
                 else:
+                    self.error_count += 1
                     self.logger.error(
                         f"Unable to index the document with id: {document['id']} Error {document['errors']}"
                     )
@@ -97,8 +98,9 @@ class SyncEnterpriseSearch:
                     ):
                         self.index_documents(documents)
         except Exception as exception:
-            self.logger.error(exception)
-            self.is_error_ocurred = True
+            self.logger.error(
+                f"Error while indexing {len(documents)} documents into Workplace Search. Error: {exception}"
+            )
             raise exception
         self.logger.info(
             f"Thread: [{threading.get_ident()}] Total {self.total_document_indexed} documents "
