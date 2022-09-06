@@ -15,7 +15,7 @@ from dateutil.relativedelta import relativedelta
 from .constant import CHATS, FILES
 from .utils import constraint_time_range, extract, retry
 
-TIME_CONSTRAINT_FOR_CHATS = (datetime.utcnow()) + relativedelta(months=-6, days=+4)
+TIME_CONSTRAINT_FOR_CHATS = (datetime.utcnow()) + relativedelta(days=-180)
 CHATS_URL = "https://zoom.us/account/archivemsg/search#/list"
 
 
