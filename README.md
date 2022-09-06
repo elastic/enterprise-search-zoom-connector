@@ -149,7 +149,7 @@ winget install make
 Next, ensure the `ees_zoom` executable is on your `PATH`. For example, on macOS:
 
 ```shell
-export PATH=/Users/shaybanon/Library/Python/3.8/bin:$PATH
+export PATH=/Users/$USER/Library/Python/3.8/bin:$PATH
 ```
 
 Note: If you are running the connector on Windows, please ensure Microsoft Visual C++ 14.0 or greater is installed.
@@ -678,7 +678,7 @@ chat_channel:read:admin
 role:read:admin
 recording:read:admin
 group:read:admin
-chat_messages:read:admin
+chat_message:read:admin
 report:read:admin
 ```
 - The user needs to add [zoom.redirect_uri](#zoomredirect_uri-required) to Zoom Oauth App.
