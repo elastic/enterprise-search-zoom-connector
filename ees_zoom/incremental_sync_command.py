@@ -77,6 +77,7 @@ class IncrementalSyncCommand(BaseCommand):
         return metadata_of_fetched_documents
 
     def start_consumer(self, queue, metadata_of_fetched_documents):
+        print('something')
         """This method starts async calls for the consumer which is responsible for indexing documents to the
         Enterprise Search.After successful indexing it stores checkpoints of time dependent objects and updates
         the doc_id according to indexed files.
