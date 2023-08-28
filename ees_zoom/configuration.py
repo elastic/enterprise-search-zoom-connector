@@ -26,6 +26,7 @@ class ConfigurationInvalidException(Exception):
 
     def __init__(self, errors):
         super().__init__(f"Provided configuration was invalid. Errors: {errors}.")
+        print("test")
 
         self.errors = errors
 
